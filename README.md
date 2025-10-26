@@ -11,4 +11,5 @@ ww.linkedin.com/in/imienazwisko1)
 - Kacper (www.linkedin.com/in/imienazwisko2
 
 cddcd
-cdcd
+
+#Jesteśmy już blisko końca zajęć
