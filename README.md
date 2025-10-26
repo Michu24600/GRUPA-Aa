@@ -7,3 +7,7 @@ owania trendów, wzorców zakupowych oraz czynników wpływających na wyniki sp
 ## Zespół
 - Imię Nazwisko 1 (
 ww.linkedin.com/in/imienazwisko1)
+- Imię Nazwisko 2 (www.linkedin.com/in/imienazwisko2
+  
+cddcd
+cdcd
