@@ -5,9 +5,10 @@ Projekt analiza danych 2025/2026
 Celem projektu jest analiza danych dotyczących sprzedaży detalicznej w celu zidentyfik
 owania trendów, wzorców zakupowych oraz czynników wpływających na wyniki sprzedaży. Analiza będzie obejmować różne aspekty, takie jak sezonowość, preferencje klientów oraz skuteczność kampanii marketingowych.
 ## Zespół
-- Imię Nazwisko 1 (
+- Wiktor (
 ww.linkedin.com/in/imienazwisko1)
-- Imię Nazwisko 2 (www.linkedin.com/in/imienazwisko2
-  
+- Michał (www.linkedin.com/in/imienazwisko2 
+- Kacper (www.linkedin.com/in/imienazwisko2
+
 cddcd
 cdcd
