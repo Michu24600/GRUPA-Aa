@@ -1,15 +1,10 @@
-# GRUPA-Aa
+# GRUPA-AA
 
-Projekt analiza danych 2025/2026
+Projekt został przygotowany w ramach zajęć „Analiza Danych w R” na Politechnice Gdańskiej.
 ## Opis projektu
-Celem projektu jest analiza danych dotyczących sprzedaży detalicznej w celu zidentyfik
-owania trendów, wzorców zakupowych oraz czynników wpływających na wyniki sprzedaży. Analiza będzie obejmować różne aspekty, takie jak sezonowość, preferencje klientów oraz skuteczność kampanii marketingowych.
-## Zespół
-- Wiktor (
-ww.linkedin.com/in/imienazwisko1)
-- Michał (www.linkedin.com/in/imienazwisko2 
-- Kacper (www.linkedin.com/in/imienazwisko2
-
-cddcd
-
-#Jesteśmy już blisko końca zajęć
+Celem projektu jest nauczenie się jak poprawnie analizować dane za pomocą języka R oraz
+wykorzystywać różne biblioteki i narzędzia dostępne w ekosystemie R.
+## Zespół składa się z następujących osób:
+- Wiktor 
+- Michał(szefito)
+- Kacper 
