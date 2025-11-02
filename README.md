@@ -8,3 +8,5 @@ wykorzystywać różne biblioteki i narzędzia dostępne w ekosystemie R.
 - Wiktor 
 - Michał(szefito)
 - Kacper 
+
+TEST Czy działa na laptopie 
