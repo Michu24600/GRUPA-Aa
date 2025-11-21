@@ -1,4 +1,4 @@
-#Biblioteki
+#Biblioteki 1
 install.packages("dplyr")
 library(dplyr)
 install.packages("naniar")
