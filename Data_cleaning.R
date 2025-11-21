@@ -42,3 +42,11 @@ any(apartments_2024_06_Winda$floorCount < 3 & apartments_2024_06_Winda$floor== 3
 apartments_2024_06_Winda[apartments_2024_06_Winda$floorCount < 3 & apartments_2024_06_Winda$floor == 3, ]
 sum(!complete.cases(apartments_data_2024_06))
 sum(!complete.cases(apartments_2024_06_Winda))
+gg_miss_var(apartments_2024_06_Winda)
+
+#Notatka 
+#Dla NA w rok budowy przyjmujemy mediane, ewentualnie sprawdzić czy to się da jakoś po równo to podzielić
+#Dystans do uczelni NA przayjął średnią
+#Floorcount - usuwamy 
+#Wszystkie dystanse był dam średnią bo w sumie ta sama linijka kodu
+#Trzeba zrobić coś z pustymi wartościami TYPE
