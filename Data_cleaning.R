@@ -5,7 +5,7 @@ install.packages("naniar")
 library(naniar)
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADPYNKLIRXXGMVVI5RWLCM3O2JAWNRQ")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADPYNKLJ4HBMTZVSYFIIDQ2G2JA37GA")
 View(apartments_data_2024_06)
 
 #Usuwanie kolumn "buildingMaterial" i "condition"
@@ -37,16 +37,34 @@ apartments_2024_06_Winda <- apartments_2024_06 %>%
 
 View(apartments_2024_06_Winda)
 
-table(apartments_2024_06_Winda$floor)
-any(apartments_2024_06_Winda$floorCount < 3 & apartments_2024_06_Winda$floor== 3)
-apartments_2024_06_Winda[apartments_2024_06_Winda$floorCount < 3 & apartments_2024_06_Winda$floor == 3, ]
-sum(!complete.cases(apartments_data_2024_06))
-sum(!complete.cases(apartments_2024_06_Winda))
-gg_miss_var(apartments_2024_06_Winda)
+#usuwamy dane zawierające NA w floorcount
+warunek <- !is.na(apartments_2024_06_Winda$floorCount)
+apartments_clean_floorcount <- apartments_2024_06_Winda[warunek, ]
+
+#Braki w dystansach do ważnych punktów zastępujemy średnią odległością do danego punktu w danym mieście.
+distance_cols <- c(
+  "collegeDistance", "clinicDistance", "restaurantDistance", 
+  "pharmacyDistance", "postOfficeDistance", "kindergartenDistance", 
+  "schoolDistance"
+)
+
+apartments_imputed <- apartments_clean_floorcount %>%
+  
+  group_by(city) %>%
+  
+  mutate(
+    across(
+      .cols = all_of(distance_cols),
+      .fns = ~ replace(., is.na(.), mean(., na.rm = TRUE))
+    )
+  ) %>%
+  ungroup()
+
+#Wykres testowy
+gg_miss_var(apartments_imputed)
+View(apartments_imputed)
+
 
 #Notatka 
 #Dla NA w rok budowy przyjmujemy mediane, ewentualnie sprawdzić czy to się da jakoś po równo to podzielić
-#Dystans do uczelni NA przayjął średnią
-#Floorcount - usuwamy 
-#Wszystkie dystanse był dam średnią bo w sumie ta sama linijka kodu
 #Trzeba zrobić coś z pustymi wartościami TYPE
