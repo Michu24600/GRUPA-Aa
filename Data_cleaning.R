@@ -7,6 +7,9 @@ install.packages("VIM")
 library(VIM)
 install.packages("tidyr")
 library(tidyr)
+install.packages("randomForest")
+library(randomForest)
+
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
 apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADPYNKLIN7SNQWERKDDYC3YM2JBYSJA")
@@ -96,12 +99,30 @@ apartments_imputed_city_knn <- apartments_imputed %>%
   ) %>%
   select(-ends_with("_imp"))
 
+#robimy type modelem random forest
+
+apartments_imputed_city_knn$type[trimws(apartments_imputed_city_knn$type) == ""] <- NA
+apartments_imputed_city_knn$type <- as.factor(apartments_imputed_city_knn$type)
+train <- apartments_imputed_city_knn[!is.na(apartments_imputed_city_knn$type), ]
+test  <- apartments_imputed_city_knn[is.na(apartments_imputed_city_knn$type), ]
+train$type <- droplevels(train$type)
+print(levels(train$type))
+
+model <- randomForest(
+  type ~ ., 
+  data = train,
+  ntree = 500,
+  na.action = na.omit 
+)
+pred <- predict(model, newdata = test)
+apartments_imputed_city_knn$type[is.na(apartments_imputed_city_knn$type)] <- pred
+print(table(apartments_imputed_city_knn$type))
+
 #Wykres testowy
 gg_miss_var(apartments_imputed_city_knn)
 View(apartments_imputed_city_knn)
 
 
 #Notatka 
-#Dla NA w rok budowy przyjmujemy mediane, ewentualnie sprawdzić czy to się da jakoś po równo to podzielić
 #Trzeba zrobić coś z pustymi wartościami TYPE
-
+table(apartments_imputed_city_knn$type)
