@@ -3,9 +3,13 @@ install.packages("dplyr")
 library(dplyr)
 install.packages("naniar")
 library(naniar)
+install.packages("VIM")
+library(VIM)
+install.packages("tidyr")
+library(tidyr)
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADPYNKLJ4HBMTZVSYFIIDQ2G2JA37GA")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADPYNKLIN7SNQWERKDDYC3YM2JBYSJA")
 View(apartments_data_2024_06)
 
 #Usuwanie kolumn "buildingMaterial" i "condition"
@@ -59,12 +63,45 @@ apartments_imputed <- apartments_clean_floorcount %>%
     )
   ) %>%
   ungroup()
+#Sprawdzamy co ma największą korelację z rokiem budowy
+num_apartments_imputed <- apartments_imputed[sapply(apartments_imputed, is.numeric)]
+cor_with_build <- cor(num_apartments_imputed, use = "complete.obs")["buildYear", ]
+cor_sorted <- sort(abs(cor_with_build), decreasing = TRUE)
+cor_sorted
+#Wybieramy te zmienne które mają największą korelację z rokiem budowy
+
+#Metoda imputacji dla roku budowy - kNN
+distance_vars_for_knn <- c("poiCount","centreDistance")
+apartments_imputed_city_knn <- apartments_imputed %>%
+  group_by(city) %>%
+  group_modify(~ {
+    dane_grupy <- .x 
+    
+    imputed_data <- kNN(
+      dane_grupy, 
+      variable = "buildYear",
+      dist_var = distance_vars_for_knn, 
+      k = 5,
+   )
+    return(imputed_data)
+  }) %>%
+  
+  ungroup() %>%
+  mutate(
+    buildYear = ifelse(
+      buildYear_imp, 
+      round(buildYear), 
+      buildYear
+    )
+  ) %>%
+  select(-ends_with("_imp"))
 
 #Wykres testowy
-gg_miss_var(apartments_imputed)
-View(apartments_imputed)
+gg_miss_var(apartments_imputed_city_knn)
+View(apartments_imputed_city_knn)
 
 
 #Notatka 
 #Dla NA w rok budowy przyjmujemy mediane, ewentualnie sprawdzić czy to się da jakoś po równo to podzielić
 #Trzeba zrobić coś z pustymi wartościami TYPE
+
