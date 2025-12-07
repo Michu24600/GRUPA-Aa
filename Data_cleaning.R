@@ -12,7 +12,7 @@ library(randomForest)
 
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADPYNKLIN7SNQWERKDDYC3YM2JBYSJA")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZCWJMF2MKYA3N3REXAB6A2JVJMGQ")
 View(apartments_data_2024_06)
 
 #Usuwanie kolumn "buildingMaterial" i "condition"
