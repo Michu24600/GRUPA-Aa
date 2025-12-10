@@ -1,18 +1,70 @@
 #Biblioteki 1
-install.packages("dplyr")
+if(!require("dplyr")) install.packages("dplyr")
 library(dplyr)
-install.packages("naniar")
+if(!require("naniar")) install.packages("naniar")
 library(naniar)
-install.packages("VIM")
+if(!require("VIM")) install.packages("VIM")
 library(VIM)
-install.packages("tidyr")
+if(!require("tidyr")) install.packages("tidyr")
 library(tidyr)
-install.packages("randomForest")
+if(!require("randomForest")) install.packages("randomForest")
 library(randomForest)
+if (!require("validate")) {install.packages("validate")}
+library(validate)
+
+
+#Sprawdzanie warunków
+
+# 1. Definicja reguł walidacyjnych
+rules_apartments <- validator(
+  # Floor count >= Floor (Liczba pięter w budynku musi być >= piętro mieszkania)
+  Logic_Floor = floorCount >= floor,
+  
+  # Square meters <= 20 m2 - Room <=3 (Dla mieszkań <= 20m2 liczba pokoi musi być <= 3)
+  Logic_Small_Apt = if (squareMeters <= 20) rooms <= 3,
+  
+  # Floor count <=1 - elevator Yes (Zgodnie z poleceniem: jeśli 1 piętro lub mniej, nie może być windy)
+  Logic_Elevator = if (floorCount <= 1) hasElevator == "no",
+  
+  # Cena <= 100000 >= 10000000 (Cena w przedziale 100 tys. - 10 mln)
+  Range_Price = price >= 100000 & price <= 10000000,
+  
+  # Współrzędne czy faktycznie Polska (Bounding box)
+  Geo_Poland_Lat = latitude >= 49.0 & latitude <= 54.9,
+  Geo_Poland_Lon = longitude >= 14.1 & longitude <= 24.2,
+  
+  # Kolumna "squareMeters" < 300
+  Limit_Area_Max = squareMeters < 300,
+  
+  # Kolumna "buildYear" < 2025
+  Limit_Year_Max = buildYear < 2025,
+  
+  # Występują w pliku tylko wartości dodatnie (wybrane kolumny numeryczne)
+  
+  # Podstawowe dane numeryczne (ID, Cena, Pokoje, Metraż)
+  Positive_Basic = id > 0 & price > 0 & rooms > 0 & squareMeters > 0,
+  
+  # Dane budynku (Rok, Piętra)
+  # Uwaga: floor > 0 oznacza, że parter (0) zostanie uznany za błąd.
+  Positive_Building = buildYear > 0 & floorCount > 0 & floor >= 0, 
+  
+  # Dane geograficzne i POI
+  Positive_Geo_POI = latitude > 0 & longitude > 0 & poiCount >= 0,
+  
+  # Dystanse (wszystkie kolumny *Distance muszą być > 0)
+  Positive_Distances = centreDistance > 0 & 
+    schoolDistance > 0 & 
+    clinicDistance > 0 & 
+    postOfficeDistance > 0 & 
+    kindergartenDistance > 0 & 
+    restaurantDistance > 0 & 
+    collegeDistance > 0 & 
+    pharmacyDistance > 0
+)
 
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZCWJMF2MKYA3N3REXAB6A2JVJMGQ")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADRBDFX55IL6KLM6X63OKU7I2JZ3PUA")
 View(apartments_data_2024_06)
 
 #Usuwanie kolumn "buildingMaterial" i "condition"
@@ -118,11 +170,47 @@ pred <- predict(model, newdata = test)
 apartments_imputed_city_knn$type[is.na(apartments_imputed_city_knn$type)] <- pred
 print(table(apartments_imputed_city_knn$type))
 
+#Czyszczenie i filtracja danych o windach 
+
+#Zamiana wartości "yes" na NA w błędnych przypadkach
+apartments_imputed_city_knn <- apartments_imputed_city_knn %>%
+  mutate(hasElevator = ifelse(floorCount <= 1 & hasElevator == "yes", NA, hasElevator))
+
+#Usunięcie wszystkich wierszy, gdzie hasElevator to NA
+apartments_imputed_city_knn <- apartments_imputed_city_knn %>%
+  filter(!is.na(hasElevator))
+
+table(apartments_imputed_city_knn$hasElevator)
+table(apartments_imputed_city_knn$floorCount)
+table(apartments_imputed_city_knn$hasElevator[apartments_imputed_city_knn$floorCount == 1])
 #Wykres testowy
 gg_miss_var(apartments_imputed_city_knn)
 View(apartments_imputed_city_knn)
 
-
 #Notatka 
 #Trzeba zrobić coś z pustymi wartościami TYPE
 table(apartments_imputed_city_knn$type)
+
+### WERSJA 1: PRZED CZYSZCZENIEM ###
+
+# 2. Konfrontacja reguł z danymi (apartments_imputed_city_knn)
+cf_apartments <- confront(apartments_data_2024_06, rules_apartments)
+
+# 3. Podsumowanie wyników
+print("Podsumowanie walidacji:")
+summary(cf_apartments)
+
+# 4. Wizualizacja
+barplot(cf_apartments, main = "Naruszenia reguł (nowe zmienne)")
+
+### WERSJA 2: PO CZYSZCZENIU ###
+
+# 2. Konfrontacja reguł z danymi (apartments_imputed_city_knn)
+cf_apartments_after_cleaning <- confront(apartments_imputed_city_knn, rules_apartments)
+
+# 3. Podsumowanie wyników
+print("Podsumowanie walidacji:")
+summary(cf_apartments_after_cleaning)
+
+# 4. Wizualizacja
+barplot(cf_apartments_after_cleaning, main = "Naruszenia reguł (nowe zmienne)")
