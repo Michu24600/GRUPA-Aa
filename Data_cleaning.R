@@ -12,6 +12,10 @@ library(randomForest)
 if (!require("validate")) {install.packages("validate")}
 library(validate)
 
+#Czyszczenie danych
+#załaduj mi obiekt apartments_pl_2024_06.csv do R
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZDZEVXOPVHWJX7EZUODPE2JZ34OQ")
+View(apartments_data_2024_06)
 
 #Sprawdzanie warunków
 
@@ -62,136 +66,7 @@ rules_apartments <- validator(
     pharmacyDistance > 0
 )
 
-#Czyszczenie danych
-#załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADRBDFX55IL6KLM6X63OKU7I2JZ3PUA")
-View(apartments_data_2024_06)
-
-#Usuwanie kolumn "buildingMaterial" i "condition"
-apartments_2024_06 <- apartments_data_2024_06[, -which(names(apartments_data_2024_06) %in% c("buildingMaterial", "condition"))]
-View(apartments_2024_06)
-
-# Uzupełnienie braków danych (NA) w kolumnie 'floor' medianą (3), lub wartością floor count, jeżeli jest mniejsza od 3.
-apartments_2024_06$floor[is.na(apartments_2024_06$floor)] <- 
-  pmin(3, apartments_2024_06$floorCount[is.na(apartments_2024_06$floor)])
-View(apartments_2024_06)
-table(apartments_2024_06$floor)
-
-#Uzupełnianie informacji na temat windy
-apartments_2024_06_Winda <- apartments_2024_06 %>%
-  mutate(
-    hasElevator = case_when(
-      # 1. Najpierw sprawdzamy warunki do UZUPEŁNIENIA (dla NA lub pustego tekstu)
-      
-      # Jeśli (jest NA LUB jest puste) I piętro > 4 -> wpisz "yes"
-      (is.na(hasElevator) | hasElevator == "") & floor > 4 ~ "yes", 
-      
-      # Jeśli (jest NA LUB jest puste) I piętro <= 4 -> wpisz "no"
-      (is.na(hasElevator) | hasElevator == "") & floor <= 4 ~ "no",  
-      
-      # 2. W każdym innym przypadku (czyli jak coś tam już było wpisane) -> zostaw to
-      TRUE ~ hasElevator
-    )
-  )
-
-View(apartments_2024_06_Winda)
-
-#usuwamy dane zawierające NA w floorcount
-warunek <- !is.na(apartments_2024_06_Winda$floorCount)
-apartments_clean_floorcount <- apartments_2024_06_Winda[warunek, ]
-
-#Braki w dystansach do ważnych punktów zastępujemy średnią odległością do danego punktu w danym mieście.
-distance_cols <- c(
-  "collegeDistance", "clinicDistance", "restaurantDistance", 
-  "pharmacyDistance", "postOfficeDistance", "kindergartenDistance", 
-  "schoolDistance"
-)
-
-apartments_imputed <- apartments_clean_floorcount %>%
-  
-  group_by(city) %>%
-  
-  mutate(
-    across(
-      .cols = all_of(distance_cols),
-      .fns = ~ replace(., is.na(.), mean(., na.rm = TRUE))
-    )
-  ) %>%
-  ungroup()
-#Sprawdzamy co ma największą korelację z rokiem budowy
-num_apartments_imputed <- apartments_imputed[sapply(apartments_imputed, is.numeric)]
-cor_with_build <- cor(num_apartments_imputed, use = "complete.obs")["buildYear", ]
-cor_sorted <- sort(abs(cor_with_build), decreasing = TRUE)
-cor_sorted
-#Wybieramy te zmienne które mają największą korelację z rokiem budowy
-
-#Metoda imputacji dla roku budowy - kNN
-distance_vars_for_knn <- c("poiCount","centreDistance")
-apartments_imputed_city_knn <- apartments_imputed %>%
-  group_by(city) %>%
-  group_modify(~ {
-    dane_grupy <- .x 
-    
-    imputed_data <- kNN(
-      dane_grupy, 
-      variable = "buildYear",
-      dist_var = distance_vars_for_knn, 
-      k = 5,
-   )
-    return(imputed_data)
-  }) %>%
-  
-  ungroup() %>%
-  mutate(
-    buildYear = ifelse(
-      buildYear_imp, 
-      round(buildYear), 
-      buildYear
-    )
-  ) %>%
-  select(-ends_with("_imp"))
-
-#robimy type modelem random forest
-
-apartments_imputed_city_knn$type[trimws(apartments_imputed_city_knn$type) == ""] <- NA
-apartments_imputed_city_knn$type <- as.factor(apartments_imputed_city_knn$type)
-train <- apartments_imputed_city_knn[!is.na(apartments_imputed_city_knn$type), ]
-test  <- apartments_imputed_city_knn[is.na(apartments_imputed_city_knn$type), ]
-train$type <- droplevels(train$type)
-print(levels(train$type))
-
-model <- randomForest(
-  type ~ ., 
-  data = train,
-  ntree = 500,
-  na.action = na.omit 
-)
-pred <- predict(model, newdata = test)
-apartments_imputed_city_knn$type[is.na(apartments_imputed_city_knn$type)] <- pred
-print(table(apartments_imputed_city_knn$type))
-
-#Czyszczenie i filtracja danych o windach 
-
-#Zamiana wartości "yes" na NA w błędnych przypadkach
-apartments_imputed_city_knn <- apartments_imputed_city_knn %>%
-  mutate(hasElevator = ifelse(floorCount <= 1 & hasElevator == "yes", NA, hasElevator))
-
-#Usunięcie wszystkich wierszy, gdzie hasElevator to NA
-apartments_imputed_city_knn <- apartments_imputed_city_knn %>%
-  filter(!is.na(hasElevator))
-
-table(apartments_imputed_city_knn$hasElevator)
-table(apartments_imputed_city_knn$floorCount)
-table(apartments_imputed_city_knn$hasElevator[apartments_imputed_city_knn$floorCount == 1])
-#Wykres testowy
-gg_miss_var(apartments_imputed_city_knn)
-View(apartments_imputed_city_knn)
-
-#Notatka 
-#Trzeba zrobić coś z pustymi wartościami TYPE
-table(apartments_imputed_city_knn$type)
-
-### WERSJA 1: PRZED CZYSZCZENIEM ###
+### WERSJA BARPLOT 1: PRZED CZYSZCZENIEM ###
 
 # 2. Konfrontacja reguł z danymi (apartments_imputed_city_knn)
 cf_apartments <- confront(apartments_data_2024_06, rules_apartments)
@@ -203,10 +78,126 @@ summary(cf_apartments)
 # 4. Wizualizacja
 barplot(cf_apartments, main = "Naruszenia reguł (nowe zmienne)")
 
-### WERSJA 2: PO CZYSZCZENIU ###
+
+
+# Zakładam, że apartments_data_2024_06 jest już wczytane.
+
+# Definiujemy kolumny dystansowe raz, żeby nie śmiecić w kodzie
+distance_cols <- c(
+  "collegeDistance", "clinicDistance", "restaurantDistance", 
+  "pharmacyDistance", "postOfficeDistance", "kindergartenDistance", 
+  "schoolDistance"
+)
+distance_vars_for_knn <- c("poiCount", "centreDistance")
+
+# -----------------------------------------------------------------------------
+# CZĘŚĆ 1: Główne czyszczenie
+# -----------------------------------------------------------------------------
+
+apartments_processed <- apartments_data_2024_06 %>%
+  #Usuwamy diw kolumny
+  select(-buildingMaterial, -condition) %>%
+  
+  #uzupełnianie braków kolumna piętro
+  mutate(
+    floor = if_else(is.na(floor), pmin(3, floorCount), floor)
+  ) %>%
+  
+  #Windy (hasElevator)
+  mutate(
+    hasElevator = case_when(
+      (is.na(hasElevator) | hasElevator == "") & floor > 4 ~ "yes",
+      (is.na(hasElevator) | hasElevator == "") & floor <= 4 ~ "no",
+      TRUE ~ hasElevator
+    )
+  ) %>%
+  
+  #Filtracja pustych floorCount 
+  filter(!is.na(floorCount)) %>%
+  
+  #Imputacja dystansów średnią w grupach miast
+  group_by(city) %>%
+  mutate(
+    across(
+      .cols = all_of(distance_cols),
+      .fns = ~ replace(., is.na(.), mean(., na.rm = TRUE))
+    )
+  ) %>%
+  
+  #Imputacja kNN dla buildYear
+  group_modify(~ {
+    imputed <- kNN(
+      .x, 
+      variable = "buildYear",
+      dist_var = distance_vars_for_knn, 
+      k = 5
+    )
+    imputed
+  }) %>%
+  ungroup() %>%
+  
+  # Sprzątanie po kNN
+  mutate(
+    buildYear = round(buildYear) 
+  ) %>%
+  select(-ends_with("_imp")) %>%
+  
+  # puste stringi na NA i faktoryzacja
+  mutate(
+    type = na_if(trimws(type), ""),
+    type = as.factor(type)
+  )
+
+# -----------------------------------------------------------------------------
+# Imputacja Random Forest (Type)
+# -----------------------------------------------------------------------------
+
+is_missing_type <- is.na(apartments_processed$type)
+
+# Trenowanie modelu
+train_data <- apartments_processed[!is_missing_type, ]
+train_data$type <- droplevels(train_data$type)
+
+model_rf <- randomForest(
+  type ~ ., 
+  data = train_data, 
+  ntree = 500,
+  na.action = na.omit 
+)
+
+# Predykcja tylko dla brakujących
+predictions <- predict(model_rf, newdata = apartments_processed[is_missing_type, ])
+
+# Wstawiamy predykcje z powrotem do głównego zbioru
+apartments_processed$type[is_missing_type] <- predictions
+
+# -----------------------------------------------------------------------------
+# Czyszczenie ostatni krok
+# -----------------------------------------------------------------------------
+
+apartments_final <- apartments_processed %>%
+  mutate(
+    hasElevator = if_else(floorCount <= 1 & hasElevator == "yes", NA_character_, hasElevator)
+  ) %>%
+  filter(!is.na(hasElevator))
+
+# Sprawdzamy wyniki - BEZ VIEW() W KODZIE PRODUKCYJNYM!
+cat("Liczba wierszy po czyszczeniu:", nrow(apartments_final), "\n")
+print(table(apartments_final$hasElevator))
+#Wykres testowy
+
+#Wizualizacja Missing values po wyczyszczeniu danych
+gg_miss_var(apartments_final)
+gg_miss_case(apartments_final)
+gg_miss_fct(apartments_final, fct = floor)
+gg_miss_upset(apartments_final, nsets = 7)
+
+
+
+### WERSJA BARPLOT 2: PO CZYSZCZENIU ###
 
 # 2. Konfrontacja reguł z danymi (apartments_imputed_city_knn)
-cf_apartments_after_cleaning <- confront(apartments_imputed_city_knn, rules_apartments)
+cf_apartments_after_cleaning <- confront(apartments_final, rules_apartments)
 
 # 3. Podsumowanie wyników
 print("Podsumowanie walidacji:")
