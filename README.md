@@ -15,8 +15,8 @@ Głównym celem projektu jest zbadanie **czynników wpływających na ceny miesz
 Staramy się odpowiedzieć na pytania:
 * Jak lokalizacja (odległość od centrum, miasto) wpływa na wycenę metra kwadratowego?
 * Czy bliskość punktów usługowych (szkoły, restauracje) podbija cenę?
-* Jaką premię cenową dają udogodnienia takie jak winda, ochrona czy miejsce parkingowe?
-* Czy "Wielka Płyta" faktycznie jest tańsza od nowego budownictwa?
+* Jaką premię cenową dają udogodnienia takie jak winda?
+* Czy rok budowy wpływa znacząco na cenę?
 
 Analiza obejmuje czyszczenie danych, inżynierię cech, wizualizację (mapy, wykresy) oraz modelowanie statystyczne.
 
@@ -52,7 +52,6 @@ Zbiór danych zawiera oferty sprzedaży mieszkań z czerwca 2024 roku.
 | `centreDistance` | Odległość od centrum miasta (km) |
 | `poiCount` | Liczba punktów POI w promieniu 500m |
 | `*Distance` | Odległości do: szkół, klinik, poczty, przedszkoli, restauracji, uczelni, aptek |
-| `has*` | Czy posiada: miejsce parkingowe, balkon, windę, ochronę, komórkę lokatorską |
 
 ---
 
