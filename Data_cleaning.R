@@ -29,7 +29,7 @@ if (!requireNamespace("ggmap", quietly = TRUE)) {
 
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZDZEVXOPVHWJX7EZUODPE2JZ34OQ")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZCWJM6TVCM5WWQHCHJ4QO2KAJRCA")
 View(apartments_data_2024_06)
 
 #Sprawdzanie warunków
@@ -94,8 +94,6 @@ summary(cf_apartments)
 barplot(cf_apartments, main = "Naruszenia reguł (nowe zmienne)")
 
 
-
-# Zakładam, że apartments_data_2024_06 jest już wczytane.
 
 # Definiujemy kolumny dystansowe raz, żeby nie śmiecić w kodzie
 distance_cols <- c(
@@ -226,6 +224,69 @@ paleta <- colorNumeric(
   palette = "magma", 
   domain = apartments_final$price,
   reverse = TRUE )
+# ==============================================================================
+# SEKCJA WIZUALIZACJI
+# ==============================================================================
+
+# Ustawienie wspólnego, czytelnego stylu dla wszystkich wykresów
+theme_set(theme_minimal())
+
+# -----------------------------------------------------------------------------
+# 1. Rozkład cen mieszkań (Histogram)
+# -----------------------------------------------------------------------------
+plot1 <- ggplot(apartments_final, aes(x = price)) +
+  geom_histogram(bins = 50, fill = "#4E84C4", color = "white", alpha = 0.8) +
+  scale_x_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  labs(
+    title = "Rozkład cen mieszkań",
+    subtitle = "Jak kształtuje się rozkład cen mieszkań w Polsce",
+    x = "Cena (PLN)",
+    y = "Liczba ofert"
+  ) +
+  theme(plot.title = element_text(face = "bold", size = 14))
+
+print(plot1)
+
+# -----------------------------------------------------------------------------
+# 2. Rozkład cen względem liczby pokoi (Price vs Rooms - Boxplot)
+# -----------------------------------------------------------------------------
+# Rzutujemy 'rooms' na factor, aby traktować liczbę pokoi jako kategorię
+plot2 <- ggplot(apartments_final, aes(x = as.factor(rooms), y = price, fill = as.factor(rooms))) +
+  geom_boxplot(alpha = 0.7, outlier.colour = "red", outlier.shape = 1, outlier.alpha = 0.5) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  scale_fill_brewer(palette = "Set3") + # Ładna paleta kolorów
+  labs(
+    title = "Cena wynajmu a liczba pokoi",
+    subtitle = "Rozkład cen",
+    x = "Liczba pokoi",
+    y = "Cena (PLN)",
+    fill = "Liczba pokoi"
+  ) +
+  theme(legend.position = "none") # Ukrywamy legendę, bo oś X wszystko wyjaśnia
+
+print(plot2)
+
+# -----------------------------------------------------------------------------
+# 3. Typ budynku a rozkład cen (Violin Plot + Boxplot w środku)
+# -----------------------------------------------------------------------------
+# Używamy wykresu skrzypcowego (violin), żeby pokazać gęstość rozkładu, 
+# i dodajemy w środku boxplot dla precyzji.
+plot3 <- apartments_final %>%
+  filter(!is.na(type)) %>% # Zabezpieczenie na wypadek braków w kolumnie type
+  ggplot(aes(x = type, y = price, fill = type)) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.15, color = "black", alpha = 0.9, outlier.shape = NA) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  labs(
+    title = "Typ budynku a ceny mieszkań",
+    subtitle = "Porównanie rozkładu cen dla różnych typów zabudowy",
+    x = "Typ budynku",
+    y = "Cena (PLN)"
+  ) +
+  theme(legend.position = "none") +
+  coord_flip() # Obracamy wykres poziomo dla lepszej czytelności etykiet
+
+print(plot3)
 
 #---------------------------------------------------------------------------------------------------------
 #mapa z każdym mieszkamniem jako kółkiem kolorowanym wg ceny
