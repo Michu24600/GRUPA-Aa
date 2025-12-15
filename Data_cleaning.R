@@ -25,11 +25,17 @@ if (!require("gifski")) {install.packages("gifski")}
 library(gifski) 
 if (!requireNamespace("ggmap", quietly = TRUE)) {
   install.packages("ggmap")
+if (!require("gifski")) {install.packages("gifski")}
+library(gifski) 
+if (!requireNamespace("shiny", quietly = TRUE)) install.packages("shiny")
+if (!requireNamespace("shinythemes", quietly = TRUE)) install.packages("shinythemes")
+  library(shiny)
+  library(shinythemes)
 }
 
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZCWJM6TVCM5WWQHCHJ4QO2KAJRCA")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZDZEUKSF2KG7UTQOCB7IO2KAMYMQ")
 View(apartments_data_2024_06)
 
 #Sprawdzanie warunków
@@ -516,4 +522,124 @@ animate(
   renderer = gifski_renderer()
 )
 
+#-----------------------------------------------------------------------------------------
+# To jest do dopracowania, ale definitywnie zostaję
+#-----------------------------------------------------------------------------------------
+ui <- fluidPage(
+  theme = shinytheme("flatly"),
+  titlePanel("💰 Kalkulator Ceny Mieszkania"),
+  sidebarLayout(
+    sidebarPanel(
+      h3("Filtry Wyszukiwania"),
+      helpText("Ustaw parametry, aby znaleźć swoje wymarzone M."),
+      
+      # SUWACZEK 1: Odległość od centrum
+      sliderInput("range_centre", 
+                  "Maksymalna odległość od centrum (km):",
+                  min = 0, 
+                  max = 15, 
+                  value = 5, # Wartość startowa
+                  step = 0.5),
+      
+      # SUWACZEK 2: Metraż (zakres od-do)
+      sliderInput("range_sqm",
+                  "Metraż (m²):",
+                  min = 20,
+                  max = 150,
+                  value = c(40, 60)), # Zakres startowy
+      
+      # SUWACZEK 3: Rok budowy
+      sliderInput("range_year",
+                  "Rok budowy:",
+                  min = 1950,
+                  max = 2024,
+                  value = c(2000, 2024),
+                  sep = ""), # sep="" usuwa przecinek w roku (np. 2,024)
+      
+      hr(), # Pozioma kreska
+      h4("Dodatki:"),
+      checkboxInput("check_elevator", "Musi być winda (hasElevator)", FALSE)
+    ),
+    
+    mainPanel(
+      div(style = "text-align: center; padding: 20px;",
+          h2("Szacowana Cena Ofertowa:"),
+          uiOutput("price_box") 
+      ),
+      
+      hr(),
+      
+      h4("Rozkład cen znalezionych ofert:"),
+      plotOutput("distPlot"),
+      
+      br(),
+      
+      h4("Przykładowe oferty spełniające kryteria:"),
+      tableOutput("resultsTable")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  filtered_data <- reactive({
+    
+    data <- apartments_final %>%
+      filter(
+        centreDistance <= input$range_centre,
+        squareMeters >= input$range_sqm[1] & squareMeters <= input$range_sqm[2],
+        buildYear >= input$range_year[1] & buildYear <= input$range_year[2]
+      )
+    
+    if (input$check_elevator) {
+      data <- data %>% filter(hasElevator == "yes") # Sprawdź czy w danych masz "yes" czy TRUE
+    }
+    
+    data
+  })
+  
+  # Renderowanie Licznika Ceny (z fajerwerkami CSS)
+  output$price_box <- renderUI({
+    df <- filtered_data()
+    
+    if (nrow(df) == 0) {
+      return(h3("Brak ofert spełniających kryteria!", style = "color: red;"))
+    }
+    
+    avg_price <- mean(df$price, na.rm = TRUE)
+    count_offers <- nrow(df)
+    
+    tagList(
+      h1(paste(format(round(avg_price, 0), big.mark = " "), "PLN"), 
+         style = "color: #2c3e50; font-weight: bold; font-size: 48px;"),
+      p(paste("Średnia z", count_offers, "znalezionych ofert"), 
+        style = "color: gray; font-size: 16px;")
+    )
+  })
+  
+  #Renderowanie wykresu
+  output$distPlot <- renderPlot({
+    df <- filtered_data()
+    
+    if (nrow(df) < 2) return(NULL) # Nie rysuj jak nie ma danych
+    
+    ggplot(df, aes(x = price)) +
+      geom_histogram(fill = "#3498db", color = "white", bins = 30) +
+      geom_vline(aes(xintercept = mean(price)), color = "red", linetype = "dashed", size = 1) +
+      labs(x = "Cena (PLN)", y = "Liczba ofert", title = "Histogram cen w wybranym segmencie") +
+      theme_minimal() +
+      scale_x_continuous(labels = scales::comma)
+  })
+  
+  # Renderowanie Tabeli
+  output$resultsTable <- renderTable({
+    filtered_data() %>%
+      select(city, price, squareMeters, floor, buildYear, centreDistance) %>%
+      arrange(price) %>% # Pokaż najtańsze
+      head(5) %>%
+      mutate(price = paste(format(price, big.mark=" "), "PLN")) # Formatowanie waluty
+  })
+}
+
+shinyApp(ui = ui, server = server)
 
