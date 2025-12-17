@@ -35,7 +35,7 @@ if (!requireNamespace("shinythemes", quietly = TRUE)) install.packages("shinythe
 
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZDZEUKSF2KG7UTQOCB7IO2KAMYMQ")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADRBDFX5LY52EOMGLQEBVZYW2KC5HNQ")
 View(apartments_data_2024_06)
 
 #Sprawdzanie warunków
@@ -643,3 +643,290 @@ server <- function(input, output) {
 
 shinyApp(ui = ui, server = server)
 
+#-----------------------------------------------------------------------------------------
+# Urbanistyczna ekspansja Gdańska
+#-----------------------------------------------------------------------------------------
+
+# 1. Załadowanie niezbędnych bibliotek
+library(osmdata)
+library(sf)
+library(ggplot2)
+library(gganimate)
+
+# 2. Przygotowanie danych dla Gdańska
+gdansk_growth <- apartments_final %>% 
+  filter(tolower(city) == "gdansk") %>% 
+  filter(!is.na(buildYear), !is.na(latitude), !is.na(longitude)) %>% 
+  mutate(buildYear = as.numeric(buildYear)) # numeric pozwala na płynniejsze przejścia
+
+# 3. Pobieranie konturów Gdańska
+message("Pobieram granice Gdańska...")
+gd_boundary <- opq(bbox = "Gdańsk") %>% 
+  add_osm_feature(key = "admin_level", value = "8") %>% 
+  osmdata_sf() %>% 
+  .$osm_multipolygons
+
+if(!is.null(gd_boundary)) { 
+  gd_boundary <- gd_boundary %>% filter(name == "Gdańsk") 
+}
+
+# 4. Budowa wykresu
+wykres_gdansk_plynny <- ggplot() +
+  # Tło - wyraźne granice Gdańska
+  {if (!is.null(gd_boundary)) geom_sf(
+    data = gd_boundary, 
+    fill = "#151515",   # Bardzo ciemny szary
+    color = "#444444",  # Wyraźny grafitowy kontur
+    size = 0.6
+  )} +
+  
+  # Punkty inwestycji
+  geom_point(
+    data = gdansk_growth, 
+    aes(x = longitude, y = latitude, group = id), 
+    color = "#00ffff", 
+    size = 1.2, 
+    alpha = 0.9
+  ) + 
+  
+  theme_void() + 
+  labs( 
+    title = "Płynny rozwój terytorialny Gdańska", 
+    subtitle = "Rok: {round(frame_along, 0)}", # frame_along dla płynnego licznika lat
+    caption = "Źródło: apartments_pl_2024_06" 
+  ) + 
+  theme( 
+    plot.background = element_rect(fill = "black", color = "black"), 
+    panel.background = element_rect(fill = "black", color = "black"), 
+    plot.title = element_text(color = "white", size = 20, face = "bold", hjust = 0.5), 
+    plot.subtitle = element_text(color = "#00ffff", size = 18, hjust = 0.5), 
+    plot.margin = margin(20, 20, 20, 20) 
+  ) + 
+  
+  # KLUCZ DO PŁYNNOŚCI: transition_reveal zamiast transition_time
+  transition_reveal(buildYear) +
+  
+  # Dzięki transition_reveal punkty domyślnie zostają, ale shadow_mark zapewnia 
+  # stabilność przy renderowaniu do GIFa
+  shadow_mark(past = TRUE, future = FALSE) +
+  
+  ease_aes('linear') 
+
+# 5. Renderowanie - duża liczba klatek zapewnia "filmową" płynność
+message("Renderuję bardzo płynną animację (400 klatek)...") 
+animate( 
+  wykres_gdansk_plynny, 
+  nframes = 400,    # Znacznie więcej klatek = płynniejszy ruch lat
+  fps = 20,         # Więcej klatek na sekundę
+  width = 800, height = 600, 
+  renderer = gifski_renderer(loop = TRUE), 
+  end_pause = 60 
+)
+
+# -----------------------------------------------------------------------------
+# ANALIZA: "STARE VS NOWE" - Cena za m2 w zależności od dekady budowy
+# -----------------------------------------------------------------------------
+
+# 1. Przygotowanie danych (grupowanie w dekady)
+price_by_decade <- apartments_final %>%
+  filter(!is.na(buildYear), buildYear >= 1900, buildYear <= 2024) %>%
+  mutate(
+    decade = (buildYear %/% 10) * 10,  # Tworzymy dekady (np. 1974 -> 1970)
+    price_per_sqm = price / squareMeters
+  ) %>%
+  group_by(decade) %>%
+  summarise(
+    avg_price_sqm = mean(price_per_sqm, na.rm = TRUE),
+    n_offers = n()
+  ) %>%
+  filter(n_offers > 5) # Usuwamy dekady z bardzo małą liczbą ofert dla lepszej statystyki
+
+# 2. Generowanie wykresu liniowo-punktowego
+plot_decade_trend <- ggplot(price_by_decade, aes(x = decade, y = avg_price_sqm)) +
+  # Linia trendu
+  geom_line(color = "#2c3e50", size = 1.2, alpha = 0.7) +
+  # Punkty - wielkość kropki zależy od liczby ofert
+  geom_point(aes(size = n_offers), color = "#e74c3c", alpha = 0.8) +
+  # Etykiety z wartością ceny nad punktami
+  geom_text(aes(label = paste0(round(avg_price_sqm, 0))), 
+            vjust = -1.5, size = 3, color = "#34495e") +
+  
+  scale_x_continuous(breaks = seq(1900, 2020, by = 10)) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN"),
+                     expand = expansion(mult = c(0.1, 0.2))) + # Więcej miejsca na górze na etykiety
+  
+  labs(
+    title = "Ewolucja wartości: Średnia cena za m² względem dekady budowy",
+    subtitle = "Wielkość punktu oznacza liczbę dostępnych ofert z danej dekady",
+    x = "Dekada budowy",
+    y = "Średnia cena za m² (PLN)",
+    size = "Liczba ofert"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    panel.grid.minor = element_blank()
+  )
+
+# Wyświetlenie wykresu
+print(plot_decade_trend)
+
+# -----------------------------------------------------------------------------
+# ANALIZA: "STARE VS NOWE" - Tylko dla Warszawy 
+# -----------------------------------------------------------------------------
+
+# 1. Przygotowanie danych dla Warszawy
+warszawa_decade_trend <- apartments_final %>%
+  # Dopasowanie do zapisu "warszawa" w Twoim pliku
+  filter(tolower(city) == "warszawa") %>%
+  filter(!is.na(buildYear), buildYear >= 1900, buildYear <= 2024) %>%
+  mutate(
+    decade = (buildYear %/% 10) * 10,
+    price_per_sqm = price / squareMeters
+  ) %>%
+  group_by(decade) %>%
+  summarise(
+    avg_price_sqm = mean(price_per_sqm, na.rm = TRUE),
+    n_offers = n()
+  ) %>%
+  filter(n_offers > 3) # Filtr, aby uniknąć przekłamań przy pojedynczych ofertach
+
+# 2. Generowanie wykresu
+plot_warszawa_trend <- ggplot(warszawa_decade_trend, aes(x = decade, y = avg_price_sqm)) +
+  # Obszar pod linią (daje fajny efekt wizualny)
+  geom_area(fill = "#4E84C4", alpha = 0.2) +
+  # Główna linia
+  geom_line(color = "#1a5276", size = 1.2) +
+  # Punkty
+  geom_point(aes(size = n_offers), color = "#1a5276") +
+  # Etykiety z cenami
+  geom_text(aes(label = paste0(round(avg_price_sqm, 0))), 
+            vjust = -1.5, size = 3.5, fontface = "bold") +
+  
+  scale_x_continuous(breaks = seq(1900, 2020, by = 10)) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN"),
+                     expand = expansion(mult = c(0.1, 0.3))) +
+  
+  labs(
+    title = "Warszawski rynek na osi czasu",
+    subtitle = "Średnia cena za m² w zależności od dekady budowy (tylko Warszawa)",
+    x = "Dekada budowy",
+    y = "Cena za m² (PLN)",
+    size = "Liczba ofert w bazie"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    panel.grid.minor = element_blank()
+  )
+
+# Wyświetlenie wykresu
+print(plot_warszawa_trend)
+
+# -----------------------------------------------------------------------------
+# ANALIZA: "PODATEK OD BRAKU WINDY" - Wszystkie badane miasta
+# -----------------------------------------------------------------------------
+
+# 1. Przygotowanie danych
+# Filtrujemy piętra do 5 (najbardziej miarodajne porównanie)
+elevator_global <- apartments_final %>%
+  filter(!is.na(floor), !is.na(hasElevator)) %>%
+  filter(floor <= 5) %>% 
+  mutate(
+    hasElevator = ifelse(hasElevator == "yes", "Z windą", "Bez windy"),
+    price_per_sqm = price / squareMeters
+  ) %>%
+  group_by(floor, hasElevator) %>%
+  summarise(
+    avg_price_sqm = mean(price_per_sqm, na.rm = TRUE),
+    n = n(),
+    .groups = 'drop'
+  )
+
+# 2. Generowanie wykresu
+plot_elevator_global <- ggplot(elevator_global, aes(x = as.factor(floor), y = avg_price_sqm, fill = hasElevator)) +
+  # Używamy słupków obok siebie (dodge)
+  geom_col(position = position_dodge(0.8), width = 0.7, alpha = 0.85) +
+  
+  # Dodanie etykiet tekstowych z ceną na szczycie słupków
+  geom_text(aes(label = paste0(round(avg_price_sqm, 0))), 
+            position = position_dodge(0.8), 
+            vjust = -0.5, size = 3.5, fontface = "bold") +
+  
+  # Kolory: Pomarańczowy dla braku windy (ostrzegawczy), Zielony dla windy (komfort)
+  scale_fill_manual(values = c("Bez windy" = "#D35400", "Z windą" = "#27AE60")) +
+  
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN"),
+                     expand = expansion(mult = c(0, 0.2))) +
+  
+  labs(
+    title = "Ekonomiczny wpływ braku windy",
+    subtitle = "Średnia cena za m² na poszczególnych piętrach (wszystkie miasta)",
+    x = "Piętro",
+    y = "Średnia cena za m² (PLN)",
+    fill = "Dostęp do windy"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    legend.position = "bottom",
+    panel.grid.major.x = element_blank()
+  )
+
+# Wyświetlenie wykresu
+print(plot_elevator_global)
+
+# -----------------------------------------------------------------------------
+# ANALIZA: STRUKTURA PROCENTOWA RYNKU (Treemap - udziały wewnątrz miast)
+# -----------------------------------------------------------------------------
+
+library(treemapify)
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# 1. Przygotowanie danych z obliczeniem procentów PER MIASTO
+market_pct_per_city <- apartments_final %>%
+  filter(!is.na(type), !is.na(city)) %>%
+  group_by(city, type) %>%
+  summarise(n_offers = n(), .groups = 'drop') %>%
+  # KLUCZOWA ZMIANA: grupujemy po mieście, aby procenty sumowały się do 100% dla każdego miasta
+  group_by(city) %>%
+  mutate(pct_in_city = n_offers / sum(n_offers)) %>%
+  ungroup()
+
+# 2. Tworzenie wykresu
+plot_structure_final <- ggplot(market_pct_per_city, aes(
+  area = n_offers,           # Wielkość prostokąta zależy od liczby (Warszawa nadal większa)
+  fill = type,               # Kolor zależy od typu budynku
+  # Etykieta: Typ + Procent udziału w danym mieście
+  label = paste0(type, "\n", label_percent(accuracy = 1)(pct_in_city)), 
+  subgroup = city            # Grupowanie po miastach
+)) +
+  geom_treemap() +
+  # Wyraźne granice miast
+  geom_treemap_subgroup_border(colour = "white", size = 4) +
+  # Nazwy miast
+  geom_treemap_subgroup_text(place = "centre", grow = TRUE, 
+                             alpha = 0.2, colour = "black", 
+                             fontface = "bold") +
+  # Podpisy typów wewnątrz
+  geom_treemap_text(colour = "white", place = "topleft", 
+                    reflow = TRUE, size = 11) +
+  
+  scale_fill_brewer(palette = "Set2") +
+  
+  labs(
+    title = "Charakterystyka rynków lokalnych",
+    subtitle = "Procenty pokazują udział danego typu zabudowy wewnątrz każdego miasta",
+    fill = "Typ zabudowy",
+    caption = "Suma procentów wewnątrz każdego miasta = 100% | Źródło: apartments_pl_2024_06"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 18),
+    legend.position = "bottom"
+  )
+
+# Wyświetlenie wykresu
+print(plot_structure_final)
