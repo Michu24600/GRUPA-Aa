@@ -23,19 +23,16 @@ if (!require("gganimate")) {install.packages("gganimate")}
 library(gganimate)
 if (!require("gifski")) {install.packages("gifski")}
 library(gifski) 
-if (!requireNamespace("ggmap", quietly = TRUE)) {
-  install.packages("ggmap")
-if (!require("gifski")) {install.packages("gifski")}
-library(gifski) 
-if (!requireNamespace("shiny", quietly = TRUE)) install.packages("shiny")
-if (!requireNamespace("shinythemes", quietly = TRUE)) install.packages("shinythemes")
-  library(shiny)
-  library(shinythemes)
-}
+if (!requireNamespace("ggmap", quietly = TRUE)) { install.packages("ggmap")} 
+library(ggmap)
+if (!requireNamespace("shiny", quietly = TRUE)) { install.packages("shiny")}
+library(shiny)
+if (!requireNamespace("shinythemes", quietly = TRUE)) {install.packages("shinythemes")}
+library(shinythemes)
 
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADRBDFX5LY52EOMGLQEBVZYW2KC5HNQ")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZDZEVN7VXGDR3ROFDK7UK2KHYXVA")
 View(apartments_data_2024_06)
 
 #Sprawdzanie warunków
@@ -199,7 +196,7 @@ apartments_final <- apartments_processed %>%
     hasElevator = if_else(floorCount <= 1 & hasElevator == "yes", NA_character_, hasElevator)
   ) %>%
   filter(!is.na(hasElevator))
-
+save(apartments_final, file = "apartments_final.RData")
 # Sprawdzamy wyniki - BEZ VIEW() W KODZIE PRODUKCYJNYM!
 cat("Liczba wierszy po czyszczeniu:", nrow(apartments_final), "\n")
 print(table(apartments_final$hasElevator))
@@ -527,11 +524,11 @@ animate(
 #-----------------------------------------------------------------------------------------
 ui <- fluidPage(
   theme = shinytheme("flatly"),
-  titlePanel("💰 Kalkulator Ceny Mieszkania"),
+  titlePanel("Ceny Mieszkania"),
   sidebarLayout(
     sidebarPanel(
       h3("Filtry Wyszukiwania"),
-      helpText("Ustaw parametry, aby znaleźć swoje wymarzone M."),
+      helpText("Ustaw parametry."),
       
       # SUWACZEK 1: Odległość od centrum
       sliderInput("range_centre", 
