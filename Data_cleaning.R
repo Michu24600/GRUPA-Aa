@@ -927,3 +927,145 @@ plot_structure_final <- ggplot(market_pct_per_city, aes(
 
 # Wyświetlenie wykresu
 print(plot_structure_final)
+
+# -----------------------------------------------------------------------------
+# Heatmapa V Cramera
+# -----------------------------------------------------------------------------
+
+# 1. Biblioteki
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+
+# 2. Przygotowanie danych i wybór kolumn numerycznych
+data_corr <- apartments_final %>%
+  # Tworzymy nową zmienną: cena za metr kwadratowy
+  mutate(price_per_sqm = price / squareMeters) %>%
+  # Wybieramy zmienne do korelacji (zamieniamy 'price' na 'price_per_sqm')
+  select(price_per_sqm, squareMeters, rooms, centreDistance, poiCount, buildYear) %>%
+  na.omit()
+
+# 3. Obliczenie macierzy korelacji Pearsona
+corr_matrix <- cor(data_corr, method = "pearson")
+
+# 4. Przygotowanie do wykresu (trójkątna mapa)
+corr_matrix[upper.tri(corr_matrix)] <- NA
+melted_corr <- melt(corr_matrix, na.rm = TRUE)
+
+# 5. Wizualizacja
+ggplot(melted_corr, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  # Dodanie wartości korelacji na kafelkach
+  geom_text(aes(label = round(value, 2)), size = 4, fontface = "bold") +
+  # Skala kolorów: czerwony (ujemna), biały (zero), niebieski (dodatnia)
+  scale_fill_gradient2(low = "#e74c3c", high = "#3498db", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), 
+                       name = "Korelacja\nPearsona") +
+  theme_minimal() +
+  labs(title = "Co wpływa na cenę za m² mieszkania?",
+       subtitle = "Korelacja Pearsona dla zmiennych numerycznych",
+       x = NULL, y = NULL) +
+  theme(
+    axis.text = element_text(size = 10, face = "bold"),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    panel.grid = element_blank()
+  ) +
+  coord_fixed()
+
+# -----------------------------------------------------------------------------
+# Podstawowe statystyki opisowe w podziale na miasta
+# -----------------------------------------------------------------------------
+
+# 1. Instalacja i ładowanie niezbędnych bibliotek
+if (!require("e1071")) install.packages("e1071")
+if (!require("DT")) install.packages("DT") # Pakiet do interaktywnych tabel
+library(e1071)
+library(dplyr)
+library(tidyr)
+library(DT)
+
+# 2. Obliczanie statystyk (identycznie jak wcześniej)
+tabela_stylizowana <- apartments_final %>%
+  group_by(city) %>%
+  summarise(
+    Min = min(price, na.rm = TRUE),
+    Max = max(price, na.rm = TRUE),
+    `Kwartyl dolny` = quantile(price, 0.25, na.rm = TRUE),
+    Mediana = median(price, na.rm = TRUE),
+    `Kwartyl górny` = quantile(price, 0.75, na.rm = TRUE),
+    Średnia = mean(price, na.rm = TRUE),
+    `Odch. std.` = sd(price, na.rm = TRUE),
+    IQR = IQR(price, na.rm = TRUE),
+    `Odchylenie ćwiartkowe` = IQR(price, na.rm = TRUE) / 2,
+    `Odch. std. w %` = (sd(price, na.rm = TRUE) / mean(price, na.rm = TRUE)),
+    `Odch. ćwiartkowe w %` = (IQR(price, na.rm = TRUE) / 2) / median(price, na.rm = TRUE),
+    Skośność = skewness(price, na.rm = TRUE),
+    Kurtoza = kurtosis(price, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  pivot_longer(cols = -city, names_to = "Statystyka", values_to = "Wartość") %>%
+  pivot_wider(names_from = city, values_from = Wartość) %>%
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+# 3. Wyświetlenie tabeli z kolorowaniem co drugiego wiersza
+# 'stripe' odpowiada za paski, 'cell-border' za obramowanie komórek
+datatable(tabela_stylizowana, 
+          options = list(
+            pageLength = 15,    # Ile wierszy na start
+            scrollX = TRUE,     # Przewijanie w poziomie dla wielu miast
+            dom = 't'           # Wyświetla tylko tabelę (bez zbędnych filtrów DT)
+          ),
+          class = 'cell-border stripe', 
+          rownames = FALSE,
+          caption = 'Porównanie Statystyk Cenowych Miast (Zebra Stripes)')
+
+# -----------------------------------------------------------------------------
+# Statystyki opisowe w relacji, type a cena za metr kwadratowy
+# -----------------------------------------------------------------------------
+
+# 1. Instalacja i ładowanie niezbędnych bibliotek
+if (!require("e1071")) install.packages("e1071")
+if (!require("DT")) install.packages("DT")
+library(e1071)
+library(dplyr)
+library(tidyr)
+library(DT)
+
+# 2. Obliczanie statystyk opisowych ceny za m2 dla typów zabudowy
+tabela_typ_metr <- apartments_final %>%
+  # Tworzymy zmienną cena za metr i usuwamy ewentualne braki w 'type'
+  mutate(price_per_sqm = price / squareMeters) %>%
+  filter(!is.na(type)) %>%
+  group_by(type) %>%
+  summarise(
+    Min = min(price_per_sqm, na.rm = TRUE),
+    Max = max(price_per_sqm, na.rm = TRUE),
+    `Kwartyl dolny` = quantile(price_per_sqm, 0.25, na.rm = TRUE),
+    Mediana = median(price_per_sqm, na.rm = TRUE),
+    `Kwartyl górny` = quantile(price_per_sqm, 0.75, na.rm = TRUE),
+    Średnia = mean(price_per_sqm, na.rm = TRUE),
+    `Odch. std.` = sd(price_per_sqm, na.rm = TRUE),
+    IQR = IQR(price_per_sqm, na.rm = TRUE),
+    `Odchylenie ćwiartkowe` = IQR(price_per_sqm, na.rm = TRUE) / 2,
+    `Odch. std. w %` = (sd(price_per_sqm, na.rm = TRUE) / mean(price_per_sqm, na.rm = TRUE)),
+    `Odch. ćwiartkowe w %` = (IQR(price_per_sqm, na.rm = TRUE) / 2) / median(price_per_sqm, na.rm = TRUE),
+    Skośność = skewness(price_per_sqm, na.rm = TRUE),
+    Kurtoza = kurtosis(price_per_sqm, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  # 3. Transponowanie (Statystyki w wierszach, Typy zabudowy w kolumnach)
+  pivot_longer(cols = -type, names_to = "Statystyka", values_to = "Wartość") %>%
+  pivot_wider(names_from = type, values_from = Wartość) %>%
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+# 4. Wyświetlenie interaktywnej tabeli z paskami (zebra stripes)
+datatable(tabela_typ_metr, 
+          options = list(
+            pageLength = 15, 
+            dom = 't',          # Wyświetla tylko tabelę
+            scrollX = TRUE,     # Przewijanie w poziomie
+            ordering = FALSE    # Wyłączenie sortowania nagłówków dla czytelności statystyk
+          ),
+          class = 'cell-border stripe', 
+          rownames = FALSE,
+          caption = 'Statystyki Ceny za m² w zależności od Typu Zabudowy')
