@@ -32,7 +32,7 @@ library(shinythemes)
 
 #Czyszczenie danych
 #załaduj mi obiekt apartments_pl_2024_06.csv do R
-apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZDZEVN7VXGDR3ROFDK7UK2KHYXVA")
+apartments_data_2024_06 <- read.csv("https://raw.githubusercontent.com/Michu24600/GRUPA-Aa/refs/heads/main/apartments_pl_2024_06.csv?token=GHSAT0AAAAAADQZDZEUEABFDXFCAGFUH2IQ2K2VUVA")
 View(apartments_data_2024_06)
 
 #Sprawdzanie warunków

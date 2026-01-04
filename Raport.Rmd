@@ -1,0 +1,237 @@
+---
+title: "Analiza Rynku Mieszkaniowego"
+subtitle: "Raport analityczny "
+author: "Grupa AA"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    toc: true             
+    toc_float: true        
+    number_sections: false 
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+``` 
+# 1. Wstęp i Cel Projektu#
+
+**🎯 Cel Analizy**
+Głównym celem niniejszego projektu jest identyfikacja oraz analiza kluczowych determinant kształtujących ceny nieruchomości w Polsce w roku 2024. Projekt skupia się na zbadaniu zależności między cechami fizycznymi i lokalizacyjnymi mieszkań a ich wyceną rynkową.
+
+Cały proces analityczny obejmuje kompleksowe podejście do danych: od ich czyszczenia (Data Cleaning) i inżynierii cech (Feature Engineering), poprzez eksploracyjną analizę danych (EDA) i wizualizację przestrzenną, aż po modelowanie statystyczne.
+
+## 1.1 Pytania Badawcze##
+
+W toku analizy staramy się znaleźć odpowiedzi na następujące pytania:
+
+[MIEJSCE NA PYTANIE BADAWCZE 1]
+
+[MIEJSCE NA PYTANIE BADAWCZE 2]
+
+[MIEJSCE NA PYTANIE BADAWCZE 3]
+
+[MIEJSCE NA PYTANIE BADAWCZE 4]
+
+## 1.2 O Danych##
+
+Analiza została przeprowadzona na zbiorze danych zawierającym oferty sprzedaży mieszkań z czerwca 2024 roku.
+
+**Źródło danych:** [https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv]
+
+## 1.3 📖 Słownik Zmiennych (Data Dictionary)##
+Poniższa tabela przedstawia opis zmiennych dostępnych w analizowanym zbiorze danych:
+```{r data_dictionary, echo=FALSE,message=FALSE,warning=FALSE}
+# Najpierw upewnij się, że masz pakiet: install.packages("kableExtra")
+library(kableExtra)
+library(dplyr)
+
+# Tworzymy dane ręcznie
+slownik <- tibble::tribble(
+  ~"Nazwa Zmiennej", ~"Opis", 
+  "id", "Unikalny identyfikator ogłoszenia", 
+  "city", "Miasto, w którym znajduje się nieruchomość", 
+  "price", "Cena ofertowa (PLN) ", 
+  "squareMeters", "Powierzchnia mieszkania w m²", 
+  "rooms", "Liczba pokoi", 
+  "floor / floorCount", "Piętro mieszkania / Liczba pięter", 
+  "buildYear", "Rok budowy budynku", 
+  "type", "Rodzaj zabudowy ", 
+  "ownership", "Forma własności", 
+  "lat / lon", "Współrzędne geograficzne", 
+  "centreDistance", "Odległość od centrum (km)", 
+  "poiCount", "Liczba punktów POI (500m)", 
+  "*Distance", "Odległości do: szkół, przychodni itp.", 
+  "has*Parking, Balkon, Winda, Ochrona...", "Czy ma dane udogodnienie (TAK/NIE)", 
+)
+
+kbl(slownik, caption = "Słownik Zmiennych (Data Dictionary)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = F, 
+                position = "center",
+                font_size = 14) %>%
+  row_spec(0, bold = TRUE, color = "white", background = "#2c3e50") %>% 
+  column_spec(1, bold = TRUE, color = "#2980b9") 
+``` 
+# 2. Porządkowanie i czyszczenie danych# 
+
+Proces przygotowania danych do analizy został podzielony na kilka kluczowych etapów: definicję reguł poprawności, wstępną walidację, imputację braków danych (metodami statystycznymi i uczenia maszynowego) oraz weryfikację końcową.
+
+## 2.1. Definicja Reguł Walidacyjnych ##
+Przed przystąpieniem do czyszczenia zdefiniowano zestaw reguł logicznych przy użyciu pakietu validate. Pozwoliło to na identyfikację błędów w surowym zbiorze danych.
+
+Sprawdzono m.in.:
+
+Spójność logiczną: Czy piętro mieszkania nie jest wyższe niż liczba pięter w budynku (Logic_Floor).
+
+Zasady budowlane: Czy w budynkach jednopiętrowych nie zadeklarowano windy (Logic_Elevator).
+
+Wiarygodność cen: Czy cena mieści się w przedziale 100 tys. – 10 mln PLN.
+
+Geolokalizację: Czy współrzędne geograficzne znajdują się w granicach Polski (Bounding Box).
+
+Kompletność dystansów: Czy odległości do punktów POI są wartościami dodatnimi.
+
+Wstępna walidacja wykazała naruszenia, które zostały skorygowane w kolejnych krokach.
+```{r Wykres obrazujący naruszenia, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
+if (!require("validate")) install.packages("validate")
+library(validate)
+if(file.exists("apartments_data_2024_06.RData")) {
+  load("apartments_data_2024_06.RData")
+}
+rules_apartments <- validator(
+  Logic_Floor = floorCount >= floor,
+  Logic_Small_Apt = if (squareMeters <= 20) rooms <= 3,
+  Logic_Elevator = if (floorCount <= 1) hasElevator == "no",
+  Range_Price = price >= 100000 & price <= 10000000,
+  Geo_Poland_Lat = latitude >= 49.0 & latitude <= 54.9,
+  Geo_Poland_Lon = longitude >= 14.1 & longitude <= 24.2,
+  Limit_Area_Max = squareMeters < 300,
+  Limit_Year_Max = buildYear < 2025,
+  Positive_Basic = id > 0 & price > 0 & rooms > 0 & squareMeters > 0,
+  Positive_Building = buildYear > 0 & floorCount > 0 & floor >= 0, 
+  Positive_Geo_POI = latitude > 0 & longitude > 0 & poiCount >= 0,
+  Positive_Distances = centreDistance > 0 & schoolDistance > 0 & clinicDistance > 0 & 
+    postOfficeDistance > 0 & kindergartenDistance > 0 & restaurantDistance > 0 & 
+    collegeDistance > 0 & pharmacyDistance > 0
+)
+
+cf_apartments <- confront(apartments_data_2024_06, rules_apartments)
+wyniki <- summary(cf_apartments)
+macierz_danych <- t(wyniki[ , c("fails", "nNA", "passes")])
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Polskie etykiety dla wykresu trzeba sprawdzić czy mają sens
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+polskie_etykiety <- c(
+  "Piętro > Piętra budynku",
+  "Za dużo pokoi (kawalerki)",
+  "Brak windy (niski blok)",
+  "Cena poza zakresem",
+  "Zła szerokość geogr.",
+  "Zła długość geogr.",
+  "Metraż > 300m",
+  "Rok budowy > 2025",
+  "Ujemne wartości (podst.)",
+  "Błędy budynku (rok/piętra)",
+  "Błędy Geo/POI",
+  "Ujemne dystanse"
+)
+layout(matrix(c(1, 2), nrow = 2), heights = c(8, 1))
+
+par(mar = c(2, 18, 4, 2)) 
+barplot(macierz_danych, 
+        main = "Struktura jakości danych (Walidacja)",
+        names.arg = polskie_etykiety,
+        horiz = TRUE,
+        las = 1,
+        col = c("#e74c3c", "#95a5a6", "#27ae60"), 
+        border = NA
+)
+
+par(mar = c(0, 0, 0, 0))
+plot.new() 
+legend("center", 
+       legend = c("Błędy", "Braki danych", "Poprawne"), 
+       fill = c("#e74c3c", "#95a5a6", "#27ae60"), 
+       bty = "n", 
+       horiz = TRUE, 
+       cex = 1.2 
+)
+```
+
+## 2.2. Strategia Czyszczenia i Imputacji ##
+Wdrożono wieloetapowy potok przetwarzania danych (pipeline), obejmujący:
+
+Wykluczenie zmiennych buildingMaterial oraz condition. Decyzja ta została podyktowana znacznym stopniem niekompletności danych (brakujące wartości) oraz niską jakością informacji źródłowych, co uniemożliwiało przeprowadzenie rzetelnej analizy statystycznej w tym zakresie.
+
+Imputacja logiczna:
+
+Braki w liczbie pięter (floor) uzupełniono wartością mediany (3) lub wartością floorCount, jeśli była mniejsza niż 3.
+
+Informację o windzie (hasElevator) wywnioskowano na podstawie wysokości budynku (przyjęto, że budynki powyżej 4 pięter posiadają windę).
+
+Imputacja statystyczna (Dystanse): Brakujące odległości do punktów usługowych (*Distance) uzupełniono średnią arytmetyczną obliczoną lokalnie dla każdego miasta.
+
+Imputacja algorytmiczna (kNN): Brakujący rok budowy (buildYear) uzupełniono metodą k-Najbliższych Sąsiadów (kNN), bazując na podobieństwie pod względem liczby punktów POI oraz odległości od centrum.
+```{r cleaning_logic, message=FALSE, warning=FALSE,results='hide'}
+# Definicja kolumn do imputacji średnią
+distance_cols <- c(
+  "collegeDistance", "clinicDistance", "restaurantDistance", 
+  "pharmacyDistance", "postOfficeDistance", "kindergartenDistance", 
+  "schoolDistance"
+)
+distance_vars_for_knn <- c("poiCount", "centreDistance")
+apartments_processed <- apartments_data_2024_06 %>%
+  # 1. Wykluczenie zmiennych o niskiej jakości
+  select(-buildingMaterial, -condition) %>%
+  
+  # 2. Imputacja logiczna: Piętra
+  # Uzupełnienie braku medianą (3) lub floorCount (jeśli budynek jest niższy)
+  mutate(
+    floor = if_else(is.na(floor), pmin(3, floorCount), floor)
+  ) %>%
+  
+  # 3. Imputacja logiczna: Windy
+  mutate(
+    hasElevator = case_when(
+      (is.na(hasElevator) | hasElevator == "") & floor > 4 ~ "yes",
+      (is.na(hasElevator) | hasElevator == "") & floor <= 4 ~ "no",
+      TRUE ~ hasElevator
+    )
+  ) %>%
+  
+  # 4. Imputacja statystyczna: Dystanse (średnia w grupach miast)
+  group_by(city) %>%
+  mutate(
+    across(
+      .cols = all_of(distance_cols),
+      .fns = ~ replace(., is.na(.), mean(., na.rm = TRUE))
+    )
+  ) %>%
+  
+  # 5. Imputacja kNN: Rok budowy (buildYear)
+  group_modify(~ {
+    VIM::kNN(
+      .x, 
+      variable = "buildYear",
+      dist_var = c("poiCount", "centreDistance"), 
+      k = 5,
+      imp_var = FALSE
+    )
+  }) %>%
+  ungroup() %>%
+  mutate(buildYear = round(buildYear))
+```
+
+## 2.3. Zaawansowana Imputacja (Random Forest) ##
+Do uzupełnienia braków w kluczowej zmiennej kategorycznej type (rodzaj zabudowy) zastosowano model uczenia maszynowego Random Forest (las losowy). Model został wytrenowany na kompletnych obserwacjach (500 drzew decyzyjnych), a następnie wykorzystany do predykcji typu budynku dla brakujących rekordów, co pozwoliło na zachowanie struktury danych lepiej niż proste uzupełnienie dominantą.
+
+ 
+## 2.4. Wyniki i Weryfikacja Końcowa ## 
+Po zakończeniu procesu czyszczenia przeprowadzono:
+
+Ponowną walidację: Sprawdzono zgodność danych z regułami validate.
+
+Analizę braków (naniar): Potwierdzono wyeliminowanie kluczowych braków danych.
+
+Zapis: Przetworzony zbiór danych został zapisany do pliku .RData w celu optymalizacji wydajności raportu.
