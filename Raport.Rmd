@@ -10,17 +10,18 @@ output:
     toc_float: true        
     number_sections: false 
 ---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-``` 
-# 1. Wstęp i Cel Projektu#
+```
 
-**🎯 Cel Analizy**
-Głównym celem niniejszego projektu jest identyfikacja oraz analiza kluczowych determinant kształtujących ceny nieruchomości w Polsce w roku 2024. Projekt skupia się na zbadaniu zależności między cechami fizycznymi i lokalizacyjnymi mieszkań a ich wyceną rynkową.
+# 1. Wstęp i Cel Projektu
+
+**🎯 Cel Analizy** Głównym celem niniejszego projektu jest identyfikacja oraz analiza kluczowych determinant kształtujących ceny nieruchomości w Polsce w roku 2024. Projekt skupia się na zbadaniu zależności między cechami fizycznymi i lokalizacyjnymi mieszkań a ich wyceną rynkową.
 
 Cały proces analityczny obejmuje kompleksowe podejście do danych: od ich czyszczenia (Data Cleaning) i inżynierii cech (Feature Engineering), poprzez eksploracyjną analizę danych (EDA) i wizualizację przestrzenną, aż po modelowanie statystyczne.
 
-## 1.1 Pytania Badawcze##
+## 1.1 Pytania Badawcze
 
 W toku analizy staramy się znaleźć odpowiedzi na następujące pytania:
 
@@ -32,14 +33,16 @@ W toku analizy staramy się znaleźć odpowiedzi na następujące pytania:
 
 [MIEJSCE NA PYTANIE BADAWCZE 4]
 
-## 1.2 O Danych##
+## 1.2 O Danych
 
 Analiza została przeprowadzona na zbiorze danych zawierającym oferty sprzedaży mieszkań z czerwca 2024 roku.
 
-**Źródło danych:** [https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv]
+**Źródło danych:** [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>]
 
-## 1.3 📖 Słownik Zmiennych (Data Dictionary)##
+## 1.3 📖 Słownik Zmiennych (Data Dictionary)
+
 Poniższa tabela przedstawia opis zmiennych dostępnych w analizowanym zbiorze danych:
+
 ```{r data_dictionary, echo=FALSE,message=FALSE,warning=FALSE}
 # Najpierw upewnij się, że masz pakiet: install.packages("kableExtra")
 library(kableExtra)
@@ -71,12 +74,14 @@ kbl(slownik, caption = "Słownik Zmiennych (Data Dictionary)") %>%
                 font_size = 14) %>%
   row_spec(0, bold = TRUE, color = "white", background = "#2c3e50") %>% 
   column_spec(1, bold = TRUE, color = "#2980b9") 
-``` 
-# 2. Porządkowanie i czyszczenie danych# 
+```
+
+# 2. Porządkowanie i czyszczenie danych
 
 Proces przygotowania danych do analizy został podzielony na kilka kluczowych etapów: definicję reguł poprawności, wstępną walidację, imputację braków danych (metodami statystycznymi i uczenia maszynowego) oraz weryfikację końcową.
 
-## 2.1. Definicja Reguł Walidacyjnych ##
+## 2.1. Definicja Reguł Walidacyjnych
+
 Przed przystąpieniem do czyszczenia zdefiniowano zestaw reguł logicznych przy użyciu pakietu validate. Pozwoliło to na identyfikację błędów w surowym zbiorze danych.
 
 Sprawdzono m.in.:
@@ -92,6 +97,7 @@ Geolokalizację: Czy współrzędne geograficzne znajdują się w granicach Pols
 Kompletność dystansów: Czy odległości do punktów POI są wartościami dodatnimi.
 
 Wstępna walidacja wykazała naruszenia, które zostały skorygowane w kolejnych krokach.
+
 ```{r Wykres obrazujący naruszenia, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
 if (!require("validate")) install.packages("validate")
 library(validate)
@@ -159,7 +165,8 @@ legend("center",
 )
 ```
 
-## 2.2. Strategia Czyszczenia i Imputacji ##
+## 2.2. Strategia Czyszczenia i Imputacji
+
 Wdrożono wieloetapowy potok przetwarzania danych (pipeline), obejmujący:
 
 Wykluczenie zmiennych buildingMaterial oraz condition. Decyzja ta została podyktowana znacznym stopniem niekompletności danych (brakujące wartości) oraz niską jakością informacji źródłowych, co uniemożliwiało przeprowadzenie rzetelnej analizy statystycznej w tym zakresie.
@@ -170,9 +177,10 @@ Braki w liczbie pięter (floor) uzupełniono wartością mediany (3) lub wartoś
 
 Informację o windzie (hasElevator) wywnioskowano na podstawie wysokości budynku (przyjęto, że budynki powyżej 4 pięter posiadają windę).
 
-Imputacja statystyczna (Dystanse): Brakujące odległości do punktów usługowych (*Distance) uzupełniono średnią arytmetyczną obliczoną lokalnie dla każdego miasta.
+Imputacja statystyczna (Dystanse): Brakujące odległości do punktów usługowych (\*Distance) uzupełniono średnią arytmetyczną obliczoną lokalnie dla każdego miasta.
 
 Imputacja algorytmiczna (kNN): Brakujący rok budowy (buildYear) uzupełniono metodą k-Najbliższych Sąsiadów (kNN), bazując na podobieństwie pod względem liczby punktów POI oraz odległości od centrum.
+
 ```{r cleaning_logic, message=FALSE, warning=FALSE,results='hide'}
 # Definicja kolumn do imputacji średnią
 distance_cols <- c(
@@ -223,11 +231,12 @@ apartments_processed <- apartments_data_2024_06 %>%
   mutate(buildYear = round(buildYear))
 ```
 
-## 2.3. Zaawansowana Imputacja (Random Forest) ##
+## 2.3. Zaawansowana Imputacja (Random Forest)
+
 Do uzupełnienia braków w kluczowej zmiennej kategorycznej type (rodzaj zabudowy) zastosowano model uczenia maszynowego Random Forest (las losowy). Model został wytrenowany na kompletnych obserwacjach (500 drzew decyzyjnych), a następnie wykorzystany do predykcji typu budynku dla brakujących rekordów, co pozwoliło na zachowanie struktury danych lepiej niż proste uzupełnienie dominantą.
 
- 
-## 2.4. Wyniki i Weryfikacja Końcowa ## 
+## 2.4. Wyniki i Weryfikacja Końcowa
+
 Po zakończeniu procesu czyszczenia przeprowadzono:
 
 Ponowną walidację: Sprawdzono zgodność danych z regułami validate.
