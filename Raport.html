@@ -11,7 +11,7 @@
 
 <meta name="author" content="Grupa AA" />
 
-<meta name="date" content="2026-01-06" />
+<meta name="date" content="2026-01-10" />
 
 <title>Analiza Rynku Mieszkaniowego</title>
 
@@ -1724,7 +1724,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">Analiza Rynku Mieszkaniowego</h1>
 <h3 class="subtitle">Raport analityczny</h3>
 <h4 class="author">Grupa AA</h4>
-<h4 class="date">2026-01-06</h4>
+<h4 class="date">2026-01-10</h4>
 
 </div>
 
@@ -1993,6 +1993,28 @@ apartments_processed &lt;- apartments_data_2024_06 %&gt;%
 drzew decyzyjnych), a następnie wykorzystany do predykcji typu budynku
 dla brakujących rekordów, co pozwoliło na zachowanie struktury danych
 lepiej niż proste uzupełnienie dominantą.</p>
+<pre class="r"><code># -----------------------------------------------------------------------------
+# Imputacja Random Forest (Type)
+# -----------------------------------------------------------------------------
+load(&quot;apartments_processed.RData&quot;)
+is_missing_type &lt;- is.na(apartments_processed$type)
+
+# Trenowanie modelu
+train_data &lt;- apartments_processed[!is_missing_type, ]
+train_data$type &lt;- droplevels(train_data$type)
+
+model_rf &lt;- randomForest(
+  type ~ ., 
+  data = train_data, 
+  ntree = 500,
+  na.action = na.omit 
+)
+
+# Predykcja tylko dla brakujących
+predictions &lt;- predict(model_rf, newdata = apartments_processed[is_missing_type, ])
+
+# Wstawiamy predykcje z powrotem do głównego zbioru
+apartments_processed$type[is_missing_type] &lt;- predictions</code></pre>
 </div>
 <div id="wyniki-i-weryfikacja-końcowa" class="section level2">
 <h2>2.4. Wyniki i Weryfikacja Końcowa</h2>

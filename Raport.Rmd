@@ -14,6 +14,38 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r biblioteki, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
+if(!require("dplyr")) install.packages("dplyr")
+library(dplyr)
+if(!require("naniar")) install.packages("naniar")
+library(naniar)
+if(!require("VIM")) install.packages("VIM")
+library(VIM)
+if(!require("tidyr")) install.packages("tidyr")
+library(tidyr)
+if(!require("randomForest")) install.packages("randomForest")
+library(randomForest)
+if (!require("validate")) {install.packages("validate")}
+library(validate)
+if (!require("leaflet")) {install.packages("leaflet")}
+library(leaflet)
+if (!require("scales")) {install.packages("scales")}
+library(scales)
+if (!require("ggplot2")) {install.packages("ggplot2")}
+library(ggplot2)
+if (!require("hexbin")) {install.packages("hexbin")}
+library(hexbin)
+if (!require("gganimate")) {install.packages("gganimate")}
+library(gganimate)
+if (!require("gifski")) {install.packages("gifski")}
+library(gifski) 
+if (!requireNamespace("ggmap", quietly = TRUE)) { install.packages("ggmap")} 
+library(ggmap)
+if (!requireNamespace("shiny", quietly = TRUE)) { install.packages("shiny")}
+library(shiny)
+if (!requireNamespace("shinythemes", quietly = TRUE)) {install.packages("shinythemes")}
+library(shinythemes)
+```
 
 # 1. Wstęp i Cel Projektu
 
@@ -234,6 +266,30 @@ apartments_processed <- apartments_data_2024_06 %>%
 ## 2.3. Zaawansowana Imputacja (Random Forest)
 
 Do uzupełnienia braków w kluczowej zmiennej kategorycznej type (rodzaj zabudowy) zastosowano model uczenia maszynowego Random Forest (las losowy). Model został wytrenowany na kompletnych obserwacjach (500 drzew decyzyjnych), a następnie wykorzystany do predykcji typu budynku dla brakujących rekordów, co pozwoliło na zachowanie struktury danych lepiej niż proste uzupełnienie dominantą.
+```{r random_forest, message=FALSE, warning=FALSE,results='hide'}
+# -----------------------------------------------------------------------------
+# Imputacja Random Forest (Type)
+# -----------------------------------------------------------------------------
+load("apartments_processed.RData")
+is_missing_type <- is.na(apartments_processed$type)
+
+# Trenowanie modelu
+train_data <- apartments_processed[!is_missing_type, ]
+train_data$type <- droplevels(train_data$type)
+
+model_rf <- randomForest(
+  type ~ ., 
+  data = train_data, 
+  ntree = 500,
+  na.action = na.omit 
+)
+
+# Predykcja tylko dla brakujących
+predictions <- predict(model_rf, newdata = apartments_processed[is_missing_type, ])
+
+# Wstawiamy predykcje z powrotem do głównego zbioru
+apartments_processed$type[is_missing_type] <- predictions
+```
 
 ## 2.4. Wyniki i Weryfikacja Końcowa
 
