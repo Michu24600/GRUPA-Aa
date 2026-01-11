@@ -49,29 +49,16 @@ library(shinythemes)
 
 # 1. Wstęp i Cel Projektu
 
-**🎯 Cel Analizy** Głównym celem niniejszego projektu jest identyfikacja oraz analiza kluczowych determinant kształtujących ceny nieruchomości w Polsce w roku 2024. Projekt skupia się na zbadaniu zależności między cechami fizycznymi i lokalizacyjnymi mieszkań a ich wyceną rynkową.
+**🎯 Cel Analizy**: 
+Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada *dwuetapową weryfikację hipotez*: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
 
-Cały proces analityczny obejmuje kompleksowe podejście do danych: od ich czyszczenia (Data Cleaning) i inżynierii cech (Feature Engineering), poprzez eksploracyjną analizę danych (EDA) i wizualizację przestrzenną, aż po modelowanie statystyczne.
-
-## 1.1 Pytania Badawcze
-
-W toku analizy staramy się znaleźć odpowiedzi na następujące pytania:
-
-[MIEJSCE NA PYTANIE BADAWCZE 1]
-
-[MIEJSCE NA PYTANIE BADAWCZE 2]
-
-[MIEJSCE NA PYTANIE BADAWCZE 3]
-
-[MIEJSCE NA PYTANIE BADAWCZE 4]
-
-## 1.2 O Danych
+## 1.1 O Danych
 
 Analiza została przeprowadzona na zbiorze danych zawierającym oferty sprzedaży mieszkań z czerwca 2024 roku.
 
-**Źródło danych:** [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>]
+Źródło danych:** [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>]
 
-## 1.3 📖 Słownik Zmiennych (Data Dictionary)
+## 1.2. 📖 Słownik Zmiennych (Data Dictionary)
 
 Poniższa tabela przedstawia opis zmiennych dostępnych w analizowanym zbiorze danych:
 
@@ -290,7 +277,14 @@ predictions <- predict(model_rf, newdata = apartments_processed[is_missing_type,
 # Wstawiamy predykcje z powrotem do głównego zbioru
 apartments_processed$type[is_missing_type] <- predictions
 ```
+```{r Końcowa Wersja, echo=FALSE, message=FALSE, warning=FALSE}
 
+apartments_final <- apartments_processed %>%
+  mutate(
+    hasElevator = if_else(floorCount <= 1 & hasElevator == "yes", NA_character_, hasElevator)
+  ) %>%
+  filter(!is.na(hasElevator))
+```
 ## 2.4. Wyniki i Weryfikacja Końcowa
 
 Po zakończeniu procesu czyszczenia przeprowadzono:
@@ -300,3 +294,66 @@ Ponowną walidację: Sprawdzono zgodność danych z regułami validate.
 Analizę braków (naniar): Potwierdzono wyeliminowanie kluczowych braków danych.
 
 Zapis: Przetworzony zbiór danych został zapisany do pliku .RData w celu optymalizacji wydajności raportu.
+```{r Wykres obrazujący naruszenia po czyszczeniu, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
+if (!require("validate")) install.packages("validate")
+library(validate)
+if(file.exists("apartments_final.RData")) {
+  load("apartments_final.RData")
+}
+rules_apartments <- validator(
+  Logic_Floor = floorCount >= floor,
+  Logic_Small_Apt = if (squareMeters <= 20) rooms <= 3,
+  Logic_Elevator = if (floorCount <= 1) hasElevator == "no",
+  Range_Price = price >= 100000 & price <= 10000000,
+  Geo_Poland_Lat = latitude >= 49.0 & latitude <= 54.9,
+  Geo_Poland_Lon = longitude >= 14.1 & longitude <= 24.2,
+  Limit_Area_Max = squareMeters < 300,
+  Limit_Year_Max = buildYear < 2025,
+  Positive_Basic = id > 0 & price > 0 & rooms > 0 & squareMeters > 0,
+  Positive_Building = buildYear > 0 & floorCount > 0 & floor >= 0, 
+  Positive_Geo_POI = latitude > 0 & longitude > 0 & poiCount >= 0,
+  Positive_Distances = centreDistance > 0 & schoolDistance > 0 & clinicDistance > 0 & 
+    postOfficeDistance > 0 & kindergartenDistance > 0 & restaurantDistance > 0 & 
+    collegeDistance > 0 & pharmacyDistance > 0
+)
+
+cf_apartments <- confront(apartments_final, rules_apartments)
+wyniki <- summary(cf_apartments)
+macierz_danych <- t(wyniki[ , c("fails", "nNA", "passes")])
+
+polskie_etykiety <- c(
+  "Piętro > Piętra budynku",
+  "Za dużo pokoi (kawalerki)",
+  "Brak windy (niski blok)",
+  "Cena poza zakresem",
+  "Zła szerokość geogr.",
+  "Zła długość geogr.",
+  "Metraż > 300m",
+  "Rok budowy > 2025",
+  "Ujemne wartości (podst.)",
+  "Błędy budynku (rok/piętra)",
+  "Błędy Geo/POI",
+  "Ujemne dystanse"
+)
+layout(matrix(c(1, 2), nrow = 2), heights = c(8, 1))
+
+par(mar = c(2, 18, 4, 2)) 
+barplot(macierz_danych, 
+        main = "Struktura jakości danych (Walidacja)",
+        names.arg = polskie_etykiety,
+        horiz = TRUE,
+        las = 1,
+        col = c("#e74c3c", "#95a5a6", "#27ae60"), 
+        border = NA
+)
+
+par(mar = c(0, 0, 0, 0))
+plot.new() 
+legend("center", 
+       legend = c("Błędy", "Braki danych", "Poprawne"), 
+       fill = c("#e74c3c", "#95a5a6", "#27ae60"), 
+       bty = "n", 
+       horiz = TRUE, 
+       cex = 1.2 
+)
+```
