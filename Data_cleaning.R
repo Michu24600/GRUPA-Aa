@@ -259,7 +259,7 @@ plot2 <- ggplot(apartments_final, aes(x = as.factor(rooms), y = price, fill = as
   scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
   scale_fill_brewer(palette = "Set3") + # Ładna paleta kolorów
   labs(
-    title = "Cena wynajmu a liczba pokoi",
+    title = "Cena mieszkania a liczba pokoi",
     subtitle = "Rozkład cen",
     x = "Liczba pokoi",
     y = "Cena (PLN)",
@@ -275,24 +275,31 @@ print(plot2)
 # Używamy wykresu skrzypcowego (violin), żeby pokazać gęstość rozkładu, 
 # i dodajemy w środku boxplot dla precyzji.
 plot3 <- apartments_final %>%
-  filter(!is.na(type)) %>% # Zabezpieczenie na wypadek braków w kolumnie type
+  filter(!is.na(type)) %>% 
+  # Mapowanie angielskich nazw na polskie odpowiedniki
+  mutate(type = recode(type, 
+                       "tenement" = "Kamienica",
+                       "blockOfFlats" = "Blok mieszkalny",
+                       "apartmentBuilding" = "Apartamentowiec")) %>%
   ggplot(aes(x = type, y = price, fill = type)) +
   geom_violin(trim = FALSE, alpha = 0.6) +
   geom_boxplot(width = 0.15, color = "black", alpha = 0.9, outlier.shape = NA) +
   scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  scale_fill_brewer(palette = "Pastel1") + # Dodanie delikatnej palety kolorów
   labs(
     title = "Typ budynku a ceny mieszkań",
     subtitle = "Porównanie rozkładu cen dla różnych typów zabudowy",
-    x = "Typ budynku",
+    x = "Rodzaj zabudowy",
     y = "Cena (PLN)"
   ) +
+  theme_minimal() +
   theme(legend.position = "none") +
-  coord_flip() # Obracamy wykres poziomo dla lepszej czytelności etykiet
+  coord_flip() 
 
 print(plot3)
 
 #---------------------------------------------------------------------------------------------------------
-#mapa z każdym mieszkamniem jako kółkiem kolorowanym wg ceny
+#Interaktywna mapa punktowa cen nieruchomości
 #---------------------------------------------------------------------------------------------------------
 mapa <- apartments_final %>%
   sample_n(min(21240, nrow(apartments_final))) %>% 
@@ -389,6 +396,34 @@ apartments_final %>%
   ) +
   theme_minimal()
 
+# -----------------------------------------------------------------------------
+# Wykres zależności ceny od odległości - Ujęcie ogólnokrajowe
+# -----------------------------------------------------------------------------
+
+wykres_odleglosci_polska <- apartments_final %>%
+  mutate(cena_za_m2 = price / squareMeters) %>%
+  # Filtracja outlierów dla lepszej czytelności trendu
+  filter(cena_za_m2 < 60000, centreDistance <= 30) %>% 
+  ggplot(aes(x = centreDistance, y = cena_za_m2)) +
+  # Zagęszczenie punktów (hexbin lub małe punkty z dużym alpha)
+  geom_point(alpha = 0.1, color = "#2c3e50", size = 0.8) +
+  # Linia trendu dla całej Polski
+  geom_smooth(method = "gam", color = "#e74c3c", size = 1.5, se = TRUE) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  labs(
+    title = "Krajowa zależność ceny od dystansu do centrum",
+    subtitle = "Zbiór wszystkich ofert z uwzględnieniem linii trendu GAM",
+    x = "Odległość od centrum (km)",
+    y = "Cena za m² (PLN)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    panel.grid.minor = element_blank()
+  )
+
+print(wykres_odleglosci_polska)
+
 #-----------------------------------------------------------------------------------------
 #Wykres zależności ceny za m² od odległości do centrum w podziale na miasta
 #-----------------------------------------------------------------------------------------
@@ -417,23 +452,27 @@ wykres_odleglosci
 
 wykres_fajerwerki <- apartments_final %>%
   mutate(price_per_sqm = price / squareMeters) %>%
-  filter(price_per_sqm < 70000) %>% 
+  # Filtracja ceny i ucięcie pustego "ogona" POI dla lepszej czytelności
+  filter(price_per_sqm < 70000, poiCount <= 180) %>%  
   
   ggplot(aes(x = poiCount, y = price_per_sqm)) +
   
   geom_hex(bins = 70) +
   
+  # 1. Logarytmowanie osi Y
+  scale_y_log10(breaks = c(5000, 10000, 15000, 20000, 30000, 50000)) +
+  
   scale_fill_viridis_c(option = "plasma", name = "Liczba\nofert") +
   
+  # 2. Wygładzenie linii trendu (ograniczenie liczby węzłów k=5 zapobiega "wężykowi")
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 5), 
+              color = "cyan", fill = "white", alpha = 0.2, size = 1.5) +
   
-  geom_smooth(method = "gam", color = "cyan", fill = "white", alpha = 0.2, size = 1.5) +
-  
-
   labs(
     title = "Wpływ punktów usługowych (POI) na cenę metra kwadratowego",
-    subtitle = "Analiza zagęszczenia ofert dla całego rynku (Hexbin Plot)",
+    subtitle = "Skala logarytmiczna i wygładzony trend GAM (dane do 180 POI)",
     x = "Liczba punktów POI w zasięgu (poiCount)",
-    y = "Cena za m² (PLN)"
+    y = "Cena za m² (PLN, skala log)"
   ) +
   
   theme_dark() +
@@ -445,8 +484,8 @@ wykres_fajerwerki <- apartments_final %>%
     legend.background = element_rect(fill = "#333333"),
     legend.text = element_text(color = "white"),
     legend.title = element_text(color = "white"),
-    plot.background = element_rect(fill = "#222222"), # Ciemne tło całego obrazka
-    panel.grid.major = element_line(color = "#444444"), # Delikatne linie siatki
+    plot.background = element_rect(fill = "#222222"), 
+    panel.grid.major = element_line(color = "#444444"), 
     panel.grid.minor = element_blank()
   )
 

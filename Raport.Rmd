@@ -5,15 +5,55 @@ author: "Grupa AA"
 date: "`r Sys.Date()`"
 output: 
   html_document:
-    theme: flatly
+    theme: 
+      bootstrap: 5
+      base_font: !expr bslib::font_google("Inter")
+      primary: "#27323E" # kolor Twojego nagłówka ze zdjęcia
     toc: true             
     toc_float: true        
     number_sections: false 
 ---
 
+<style>
+/* Styl dla nagłówka stopnia 1 (np. # 2.) */
+h1 {
+  font-size: 2.2em;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-top: 30px;
+}
+
+/* Styl dla nagłówka stopnia 2 (np. ## 2.2.) - TUTAJ GO ZMNIEJSZAMY */
+h2 {
+  font-size: 1.3em; /* Mniejszy rozmiar */
+  font-weight: bold;
+  color: #34495e;
+  margin-top: 20px;
+  border-bottom: 1px solid #eeeeee; /* Subtelna linia pod spodem */
+  padding-bottom: 5px;
+}
+
+/* Opcjonalnie: automatyczne wyjustowanie całego tekstu w raporcie */
+body {
+  text-align: justify;
+}
+</style>
+
+<style>
+img {
+  border: 2px solid #2c3e50; /* Grubość, styl i kolor ramki */
+  border-radius: 5px;        /* Zaokrąglone rogi */
+  padding: 5px;              /* Odstęp między wykresem a ramką */
+  margin: 10px 0;            /* Odstęp od tekstu */
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.1); /* Subtelny cień */
+}
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(bslib)
 ```
+
 ```{r biblioteki, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
 if(!require("dplyr")) install.packages("dplyr")
 library(dplyr)
@@ -49,14 +89,13 @@ library(shinythemes)
 
 # 1. Wstęp i Cel Projektu
 
-**🎯 Cel Analizy**: 
-Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada *dwuetapową weryfikację hipotez*: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
+**🎯 Cel Analizy**: Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada *dwuetapową weryfikację hipotez*: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
 
 ## 1.1 O Danych
 
 Analiza została przeprowadzona na zbiorze danych zawierającym oferty sprzedaży mieszkań z czerwca 2024 roku.
 
-Źródło danych:** [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>]
+Źródło danych:\*\* [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>]
 
 ## 1.2. 📖 Słownik Zmiennych (Data Dictionary)
 
@@ -117,7 +156,7 @@ Kompletność dystansów: Czy odległości do punktów POI są wartościami doda
 
 Wstępna walidacja wykazała naruszenia, które zostały skorygowane w kolejnych krokach.
 
-```{r Wykres obrazujący naruszenia, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
+```{r Wykres obrazujący naruszenia, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
 if (!require("validate")) install.packages("validate")
 library(validate)
 if(file.exists("apartments_data_2024_06.RData")) {
@@ -200,7 +239,7 @@ Imputacja statystyczna (Dystanse): Brakujące odległości do punktów usługowy
 
 Imputacja algorytmiczna (kNN): Brakujący rok budowy (buildYear) uzupełniono metodą k-Najbliższych Sąsiadów (kNN), bazując na podobieństwie pod względem liczby punktów POI oraz odległości od centrum.
 
-```{r cleaning_logic, message=FALSE, warning=FALSE,results='hide'}
+```{r cleaning_logic, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 # Definicja kolumn do imputacji średnią
 distance_cols <- c(
   "collegeDistance", "clinicDistance", "restaurantDistance", 
@@ -253,7 +292,8 @@ apartments_processed <- apartments_data_2024_06 %>%
 ## 2.3. Zaawansowana Imputacja (Random Forest)
 
 Do uzupełnienia braków w kluczowej zmiennej kategorycznej type (rodzaj zabudowy) zastosowano model uczenia maszynowego Random Forest (las losowy). Model został wytrenowany na kompletnych obserwacjach (500 drzew decyzyjnych), a następnie wykorzystany do predykcji typu budynku dla brakujących rekordów, co pozwoliło na zachowanie struktury danych lepiej niż proste uzupełnienie dominantą.
-```{r random_forest, message=FALSE, warning=FALSE,results='hide'}
+
+```{r random_forest, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, results='hide'}
 # -----------------------------------------------------------------------------
 # Imputacja Random Forest (Type)
 # -----------------------------------------------------------------------------
@@ -277,6 +317,7 @@ predictions <- predict(model_rf, newdata = apartments_processed[is_missing_type,
 # Wstawiamy predykcje z powrotem do głównego zbioru
 apartments_processed$type[is_missing_type] <- predictions
 ```
+
 ```{r Końcowa Wersja, echo=FALSE, message=FALSE, warning=FALSE}
 
 apartments_final <- apartments_processed %>%
@@ -285,6 +326,7 @@ apartments_final <- apartments_processed %>%
   ) %>%
   filter(!is.na(hasElevator))
 ```
+
 ## 2.4. Wyniki i Weryfikacja Końcowa
 
 Po zakończeniu procesu czyszczenia przeprowadzono:
@@ -294,7 +336,8 @@ Ponowną walidację: Sprawdzono zgodność danych z regułami validate.
 Analizę braków (naniar): Potwierdzono wyeliminowanie kluczowych braków danych.
 
 Zapis: Przetworzony zbiór danych został zapisany do pliku .RData w celu optymalizacji wydajności raportu.
-```{r Wykres obrazujący naruszenia po czyszczeniu, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
+
+```{r Wykres obrazujący naruszenia po czyszczeniu, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
 if (!require("validate")) install.packages("validate")
 library(validate)
 if(file.exists("apartments_final.RData")) {
@@ -357,3 +400,238 @@ legend("center",
        cex = 1.2 
 )
 ```
+
+# 3. Analiza opisowa rynku nieruchomości
+
+<div style="text-align: justify;">
+
+Rozdział ten stanowi szczegółową analizę zebranych danych, mającą na celu zrozumienie mechanizmów rządzących polskim rynkiem nieruchomości w 2026 roku. Przeprowadzona analiza opisowa pozwala zidentyfikować kluczowe trendy cenowe oraz zrozumieć, jakie czynniki techniczne i lokalizacyjne w największym stopniu kształtują wartość ofert. Dzięki wykorzystaniu miar tendencji centralnej oraz metod wizualizacji, możliwe jest oddzielenie typowych transakcji od zjawisk o charakterze luksusowym czy marginalnym. Stanowi to fundament do dalszych, bardziej zaawansowanych wniosków dotyczących opłacalności inwestycji w konkretnych segmentach rynku.
+
+</div>
+
+## 3.1 Ogólna charakterystyka cen mieszkań w Polsce
+
+```{r Rozkład cen mieszkań (Histogram), echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+plot1 <- ggplot(apartments_final, aes(x = price)) +
+  geom_histogram(bins = 50, fill = "#4E84C4", color = "white", alpha = 0.8) +
+  scale_x_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  labs(
+    title = "Rozkład cen mieszkań",
+    subtitle = "Jak kształtuje się rozkład cen mieszkań w Polsce",
+    x = "Cena (PLN)",
+    y = "Liczba ofert"
+  ) +
+  theme(plot.title = element_text(face = "bold", size = 14))
+
+print(plot1)
+```
+
+
+<div style="text-align: justify;">
+
+Rozkład cen cechuje się silną asymetrią prawostronną, z największą koncentracją ofert w przedziale od 500 000 do 850 000 PLN. Dominacja tego segmentu wyznacza rynkowy standard cenowy, podczas gdy oferty powyżej 1,5 mln PLN stanowią nieliczną grupę nieruchomości luksusowych. Wyraźny brak ogłoszeń poniżej 250 000 PLN definiuje wysoki próg wejścia na badany rynek. Obecność wartości odstających, sięgających nawet 3 mln PLN, powoduje, że średnia arytmetyczna jest zawyżona. W konsekwencji to mediana, a nie średnia, najlepiej oddaje realny koszt zakupu typowego mieszkania.
+
+</div>
+
+```{r Rozkład cen względem liczby pokoi (Price vs Rooms - Boxplot), echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+plot2 <- ggplot(apartments_final, aes(x = as.factor(rooms), y = price, fill = as.factor(rooms))) +
+  geom_boxplot(alpha = 0.7, outlier.colour = "red", outlier.shape = 1, outlier.alpha = 0.5) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  scale_fill_brewer(palette = "Set3") + # Ładna paleta kolorów
+  labs(
+    title = "Cena mieszkania a liczba pokoi",
+    subtitle = "Rozkład cen",
+    x = "Liczba pokoi",
+    y = "Cena (PLN)",
+    fill = "Liczba pokoi"
+  ) +
+  theme(legend.position = "none") # Ukrywamy legendę, bo oś X wszystko wyjaśnia
+
+print(plot2)
+```
+
+
+<div style="text-align: justify;">
+
+Wykres prezentuje wyraźną korelację dodatnią między liczbą pokoi a ceną nieruchomości, przy czym wraz ze wzrostem metrażu obserwuje się nie tylko wzrost mediany, ale także znaczące rozszerzenie rozstępu międzykwartylowego. Rynek mieszkań 1- i 2-pokojowych charakteryzuje się największą stabilnością i koncentracją cenową, gdzie niski próg wejścia oscyluje wokół 400 000 PLN, natomiast segmenty 3- i 4-pokojowe wykazują silną asymetrię prawostronną z licznymi wartościami odstającymi sięgającymi nawet 3 mln PLN. Obecność tak wysokich wartości ekstremalnych w segmencie średniej wielkości mieszkań świadczy o silnie rozwiniętym rynku premium, który istotnie zawyża średnią arytmetyczną, czyniąc medianę najbezpieczniejszym wskaźnikiem typowej ceny transakcyjnej. W przypadku największych lokali, mających 5 i 6 pokoi, korpusy wykresów stają się znacznie wyższe, co sugeruje, że w tej kategorii liczba pokoi przestaje być dominującym czynnikiem cenotwórczym na rzecz standardu wykończenia i prestiżowej lokalizacji. Całość obrazuje strukturę rynkową, w której ryzyko cenowe i dyspersja ofert rosną progresywnie wraz z wielkością nieruchomości, definiując rynek o wysokim stopniu zróżnicowania jakościowego.
+
+</div>
+
+
+```{r Typ budynku a rozkład cen (Violin Plot + Boxplot w środku), echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+plot3 <- apartments_final %>%
+  filter(!is.na(type)) %>% 
+  # Mapowanie angielskich nazw na polskie odpowiedniki
+  mutate(type = recode(type, 
+                       "tenement" = "Kamienica",
+                       "blockOfFlats" = "Blok mieszkalny",
+                       "apartmentBuilding" = "Apartamentowiec")) %>%
+  ggplot(aes(x = type, y = price, fill = type)) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.15, color = "black", alpha = 0.9, outlier.shape = NA) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  scale_fill_brewer(palette = "Pastel1") + # Dodanie delikatnej palety kolorów
+  labs(
+    title = "Typ budynku a ceny mieszkań",
+    subtitle = "Porównanie rozkładu cen dla różnych typów zabudowy",
+    x = "Rodzaj zabudowy",
+    y = "Cena (PLN)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  coord_flip() 
+
+print(plot3)
+```
+
+
+<div style="text-align: justify;">
+
+Analiza wykresu skrzypcowego (violin plot) wskazuje na istotne różnice w strukturze cenowej w zależności od typu zabudowy, przy czym segment apartamentowców charakteryzuje się najwyższą medianą cen oraz najbardziej rozciągniętym prawostronnym ogonem rozkładu. W przeciwieństwie do bloków, które wykazują największą koncentrację ofert w węższym przedziale cenowym i relatywnie najniższy próg wejścia, kamienice prezentują specyficzny, dwumodalny charakter rozkładu sugerujący podział na lokale standardowe oraz nieruchomości zrewitalizowane o znacznie wyższej wartości. Największą gęstość prawdopodobieństwa dla wszystkich typów zabudowy obserwujemy w przedziale od 600 000 do 1 100 000 PLN, jednak to apartamentowce wykazują najszerszy rozstęp międzykwartylowy, co świadczy o największym zróżnicowaniu standardu w tej kategorii. Wyraźne wydłużenie „szyjek” wykresów w stronę wartości przekraczających 2 mln PLN, szczególnie widoczne w przypadku kamienic i apartamentowców, potwierdza występowanie silnej asymetrii dodatniej i unikalnych ofert luksusowych, które kształtują górną granicę badanego rynku. Całość zestawienia dowodzi, że o ile blokowiska stanowią najbardziej przewidywalny i jednorodny segment cenowy, o tyle inwestycja w apartamenty lub kamienice wiąże się z większą dyspersją kosztów i obecnością ofert o charakterze wybitnie prestiżowym.
+
+</div>
+
+```{r Interaktywna mapa punktowa cen nieruchomości, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+paleta <- colorNumeric(
+  palette = "magma", 
+  domain = apartments_final$price,
+  reverse = TRUE )
+
+mapa <- apartments_final %>%
+  sample_n(min(21240, nrow(apartments_final))) %>% 
+  leaflet() %>%
+  addTiles() %>% 
+  addCircleMarkers(
+    lng = ~longitude,
+    lat = ~latitude,
+    radius = 6,
+    color = ~paleta(price), 
+    fillOpacity = 0.8,
+    stroke = FALSE,
+    popup = ~paste0("Cena: ", price, " PLN"),
+    label = ~as.character(price)
+  ) %>%
+  
+  addLegend(
+    "bottomright", 
+    pal = paleta,      # I tu znowu używamy palety
+    values = ~price,
+    title = "Cena",
+    opacity = 1
+  )
+mapa
+```
+
+<div style="text-align: justify;">
+
+Mapa punktowa ofert prezentuje możliwość oceny koncentracji ofert w miastach wraz z rozkładem cen w odróżnienu od innych miast, ale również dzielnic. Mapa ukazuje różnice cenowe między dzielnicami centralnymi, a obrzeżami zwanymi dzielnicami mieszkalnymi.
+
+</div>
+
+```{r Wykres z bombelkami dla średniej ceny w miastach przeskalowany, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+city_stats <- apartments_final %>%
+  group_by(city) %>% 
+  summarise(
+    avg_price = mean(price, na.rm = TRUE),      # Średnia cena
+    avg_lat   = mean(latitude, na.rm = TRUE),   # Środek miasta (szerokość)
+    avg_lng   = mean(longitude, na.rm = TRUE),  # Środek miasta (długość)
+    offer_count = n()                           
+  )
+
+city_stats_scaled <- apartments_final %>%
+  group_by(city) %>%
+  summarise(
+    avg_price = mean(price, na.rm = TRUE),
+    avg_lat   = mean(latitude, na.rm = TRUE),
+    avg_lng   = mean(longitude, na.rm = TRUE),
+    offer_count = n()
+  ) %>%
+  mutate(
+    scaled_radius = scales::rescale(sqrt(offer_count), to = c(5, 35))
+  )
+
+paleta_miasta <- colorNumeric(palette = "viridis", domain = city_stats_scaled$avg_price, reverse = TRUE)
+
+mapa_pro <- city_stats_scaled %>%
+  leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(
+    lng = ~avg_lng,
+    lat = ~avg_lat,
+    radius = ~scaled_radius, 
+
+    color = ~paleta_miasta(avg_price),
+    fillOpacity = 0.8,
+    stroke = FALSE,
+    popup = ~paste0("<b>Miasto:</b> ", city, "<br><b>Oferty:</b> ", offer_count),
+    label = ~city
+  ) %>%
+  addLegend("bottomright", pal = paleta_miasta, values = ~avg_price, title = "Średnia cena")
+
+mapa_pro
+```
+
+<div style="text-align: justify;">
+
+Mapa bąbelkowa uwidacznia drastyczne dysproporcje w średnich cenach mieszkań, gdzie dominująca wielkość i ciemny kolor bąbla nad Warszawą wyznacza ogólnokrajowy szczyt cenowy przekraczający 1 000 000 PLN. Wysoki poziom cenowy utrzymuje się również w aglomeracji krakowskiej i trójmiejskiej, podczas gdy mniejsze ośrodki, takie jak Radom czy Częstochowa, reprezentowane są przez jasne punkty sygnalizujące znacznie niższy koszt zakupu nieruchomości. Rozkład ten potwierdza, że kapitał jest silnie skoncentrowany w kilku kluczowych metropoliach, co tworzy wyraźny podział na drogie rynki regionalne i bardziej przystępne cenowo obszary reszty kraju.
+
+</div>
+
+```{r Wykres słupkowy średniej ceny za m² w miastach, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+apartments_final %>%
+  # 1. Obliczamy cenę za metr (jeśli nie ma) i grupujemy
+  mutate(price_per_sqm = price / squareMeters) %>%
+  group_by(city) %>%
+  summarise(mean_price_sqm = mean(price_per_sqm, na.rm = TRUE)) %>%
+  
+  # 2. Rysujemy
+  # reorder() sortuje miasta od najtańszego do najdroższego - kluczowe dla czytelności
+  ggplot(aes(x = reorder(city, mean_price_sqm), y = mean_price_sqm)) +
+  
+  # geom_col() to funkcja do słupków, gdy mamy wyliczone wartości
+  geom_col(fill = "steelblue") + 
+  
+  # Obracamy wykres, żeby nazwy miast się czytało normalnie
+  coord_flip() +
+  
+  # Opisy i formatowanie
+  labs(
+    title = "Średnia cena za m² w miastach",
+    x = "Miasto",
+    y = "Cena za m² (PLN)"
+  ) +
+  theme_minimal()
+```
+
+<div style="text-align: justify;">
+
+Wykres słupkowy prezentuje wyraźną hierarchię cenową polskich miast, w której Warszawa deklasuje pozostałe ośrodki z rekordową średnią stawką przekraczającą 18 000 PLN za m². Drugi segment rynku tworzą Kraków oraz Gdańsk, gdzie ceny oscylują w granicach 15 000 – 17 000 PLN, podczas gdy na przeciwległym biegunie znajdują się Radom i Częstochowa z ofertami poniżej 7 500 PLN za m². Tak duża rozpiętość — sięgająca ponad 150% między stolicą a miastami o najniższych stawkach — obrazuje głębokie rozwarstwienie ekonomiczne kraju i koncentrację popytu inwestycyjnego w kilku kluczowych metropoliach.
+
+</div>
+
+```{r Wykres zależności ceny od odległości - Ujęcie ogólnokrajowe, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+wykres_odleglosci_polska <- apartments_final %>%
+  mutate(cena_za_m2 = price / squareMeters) %>%
+  # Filtracja outlierów dla lepszej czytelności trendu
+  filter(cena_za_m2 < 60000, centreDistance <= 30) %>% 
+  ggplot(aes(x = centreDistance, y = cena_za_m2)) +
+  # Zagęszczenie punktów (hexbin lub małe punkty z dużym alpha)
+  geom_point(alpha = 0.1, color = "#2c3e50", size = 0.8) +
+  # Linia trendu dla całej Polski
+  geom_smooth(method = "gam", color = "#e74c3c", size = 1.5, se = TRUE) +
+  scale_y_continuous(labels = scales::label_number(suffix = " PLN", big.mark = " ")) +
+  labs(
+    title = "Krajowa zależność ceny od dystansu do centrum",
+    subtitle = "Zbiór wszystkich ofert z uwzględnieniem linii trendu GAM",
+    x = "Odległość od centrum (km)",
+    y = "Cena za m² (PLN)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    panel.grid.minor = element_blank()
+  )
+
+print(wykres_odleglosci_polska)
+```
+
