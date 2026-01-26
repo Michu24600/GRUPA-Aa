@@ -447,7 +447,7 @@ wykres_odleglosci <- apartments_final %>%
 wykres_odleglosci
 
 #-----------------------------------------------------------------------------------------
-#Wykres hexbin pokazujący zależność ceny za m² od liczby punktów POI
+#Wykres hexbin pokazujący zależność ceny za m² od liczby punktów POI (wygładzony trend GAM k=5, skala logarytmiczna)
 #-----------------------------------------------------------------------------------------
 
 wykres_fajerwerki <- apartments_final %>%
@@ -559,7 +559,7 @@ animate(
 )
 
 #-----------------------------------------------------------------------------------------
-# To jest do dopracowania, ale definitywnie zostaję
+# Interaktywny kalkulator cen rynkowych i analiza rozkładu ofert
 #-----------------------------------------------------------------------------------------
 ui <- fluidPage(
   theme = shinytheme("flatly"),
@@ -980,8 +980,17 @@ library(dplyr)
 data_corr <- apartments_final %>%
   # Tworzymy nową zmienną: cena za metr kwadratowy
   mutate(price_per_sqm = price / squareMeters) %>%
-  # Wybieramy zmienne do korelacji (zamieniamy 'price' na 'price_per_sqm')
+  # Wybieramy zmienne
   select(price_per_sqm, squareMeters, rooms, centreDistance, poiCount, buildYear) %>%
+  # ZMIANA NAZW NA POLSKIE
+  rename(
+    "Cena za m²" = price_per_sqm,
+    "Metraż" = squareMeters,
+    "Liczba pokoi" = rooms,
+    "Dystans do centrum" = centreDistance,
+    "Liczba POI" = poiCount,
+    "Rok budowy" = buildYear
+  ) %>%
   na.omit()
 
 # 3. Obliczenie macierzy korelacji Pearsona
@@ -1070,11 +1079,17 @@ library(dplyr)
 library(tidyr)
 library(DT)
 
-# 2. Obliczanie statystyk opisowych ceny za m2 dla typów zabudowy
-tabela_typ_metr <- apartments_final %>%
-  # Tworzymy zmienną cena za metr i usuwamy ewentualne braki w 'type'
+# 2. Przygotowanie statystyk i zmiana nazw na polskie w jednym kroku
+tabela_polskie_nazwy <- apartments_final %>%
   mutate(price_per_sqm = price / squareMeters) %>%
   filter(!is.na(type)) %>%
+  # Tutaj zmieniamy nazwy wartości w kolumnie 'type' zanim ją obrócimy
+  mutate(type = case_when(
+    type == "apartmentBuilding" ~ "Apartamentowiec",
+    type == "blockOfFlats" ~ "Blok",
+    type == "tenement" ~ "Kamienica",
+    TRUE ~ type
+  )) %>%
   group_by(type) %>%
   summarise(
     Min = min(price_per_sqm, na.rm = TRUE),
@@ -1092,19 +1107,63 @@ tabela_typ_metr <- apartments_final %>%
     Kurtoza = kurtosis(price_per_sqm, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  # 3. Transponowanie (Statystyki w wierszach, Typy zabudowy w kolumnach)
+  # 2. Transpozycja (teraz type ma już polskie nazwy, więc pivot_wider zrobi polskie kolumny)
   pivot_longer(cols = -type, names_to = "Statystyka", values_to = "Wartość") %>%
   pivot_wider(names_from = type, values_from = Wartość) %>%
   mutate(across(where(is.numeric), ~ round(., 2)))
 
-# 4. Wyświetlenie interaktywnej tabeli z paskami (zebra stripes)
-datatable(tabela_typ_metr, 
+# 3. Wyświetlenie tabeli
+datatable(tabela_polskie_nazwy, 
           options = list(
             pageLength = 15, 
-            dom = 't',          # Wyświetla tylko tabelę
-            scrollX = TRUE,     # Przewijanie w poziomie
-            ordering = FALSE    # Wyłączenie sortowania nagłówków dla czytelności statystyk
+            dom = 't',          
+            scrollX = TRUE,     
+            ordering = FALSE    
           ),
           class = 'cell-border stripe', 
           rownames = FALSE,
-          caption = 'Statystyki Ceny za m² w zależności od Typu Zabudowy')
+          caption = 'Statystyki opisowe ceny za m² w zależności od typu zabudowy')
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+#Testy statystyczne
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# ANOVA: Czy średnia cena za m2 różni się istotnie między miastami?
+# -----------------------------------------------------------------------------
+
+# 1. Załadowanie biblioteki
+library(ggstatsplot)
+library(dplyr)
+
+# 2. Przygotowanie danych (obliczenie ceny za m2 i czyszczenie)
+anova_data <- apartments_final %>%
+  mutate(price_per_sqm = price / squareMeters) %>%
+  filter(!is.na(price_per_sqm), !is.na(city)) %>%
+  # Opcjonalnie: wybór kilku miast, aby wykres był bardziej czytelny i uniknąć błędu palety
+  filter(city %in% c("warszawa", "krakow", "wroclaw", "gdansk", "poznan", "lodz")) %>%
+  mutate(city = as.factor(city))
+
+# 3. Wykonanie wykresu i testu statystycznego
+ggbetweenstats(
+  data = anova_data,
+  x = city,                  # Twoja zmienna kategoryczna (odpowiednik 'cyl')
+  y = price_per_sqm,         # Twoja zmienna ilościowa (odpowiednik 'mpg')
+  type = "p",                # Test parametryczny (ANOVA)
+  conf.level = 0.95,         # Poziom ufności
+  var.equal = FALSE,         # Założenie o niejednorodności wariancji (Test Welcha) - bezpieczniejsze dla miast
+  pairwise.display = "significant", # Wyświetla klamerki tylko dla istotnych statystycznie różnic
+  bf.message = FALSE,        # Wyłącza informację o czynniku Bayesa (czyściej na wykresie)
+  
+  # Dodatkowe parametry dla estetyki i czytelności:
+  title = "Porównanie średnich cen za m² między miastami",
+  xlab = "Miasto",
+  ylab = "Cena za metr kwadratowy (PLN)",
+  palette = "Set2",          # Paleta obsługująca więcej kolorów niż Tableau_10
+  package = "RColorBrewer"
+)

@@ -635,3 +635,213 @@ wykres_odleglosci_polska <- apartments_final %>%
 print(wykres_odleglosci_polska)
 ```
 
+<div style="text-align: justify;">
+Wykres rozrzutu z linią trendu GAM obrazuje złożoną zależność ceny za m² od odległości lokalu od centrum, podważając prosty schemat liniowego spadku wartości wraz z oddalaniem się od rdzenia miasta. Choć najwyższe stawki jednostkowe, przekraczające 25 000 PLN, koncentrują się w bezpośrednim sąsiedztwie centrum (0–2 km), linia trendu wykazuje charakterystyczne falowanie, z lokalnym wzrostem cen w okolicach 10. kilometra, co sugeruje wysoką wycenę prestiżowych dzielnic sypialnianych oraz nowoczesnych osiedli apartamentowych na obrzeżach metropolii. Ogromna chmura punktów poniżej 15 000 PLN, rozciągająca się jednostajnie wzdłuż całej osi odległości, świadczy o szerokiej dostępności lokali o niższym standardzie niezależnie od lokalizacji, podczas gdy wyraźne zwężenie rozkładu powyżej 15 km sygnalizuje ostateczny spadek stawek na terenach podmiejskich. W efekcie wykres dowodzi, że o ile ścisłe centrum generuje rekordowe ceny ofertowe, o tyle wtórne rynki lokalne i segmenty premium poza centrum skutecznie stabilizują średnią cenę za metr kwadratowy na poziomie około 15 000 PLN dla większości badanego obszaru.
+
+</div>
+
+```{r Wykres hexbin pokazujący zależność ceny za m2 od liczby punktów POI, wygładzony trend GAM, skala logarytmiczna, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+wykres_fajerwerki <- apartments_final %>%
+  mutate(price_per_sqm = price / squareMeters) %>%
+  # Filtracja ceny i ucięcie pustego "ogona" POI dla lepszej czytelności
+  filter(price_per_sqm < 70000, poiCount <= 180) %>%  
+  
+  ggplot(aes(x = poiCount, y = price_per_sqm)) +
+  
+  geom_hex(bins = 70) +
+  
+  # 1. Logarytmowanie osi Y
+  scale_y_log10(breaks = c(5000, 10000, 15000, 20000, 30000, 50000)) +
+  
+  scale_fill_viridis_c(option = "plasma", name = "Liczba\nofert") +
+  
+  # 2. Wygładzenie linii trendu (ograniczenie liczby węzłów k=5 zapobiega "wężykowi")
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 5), 
+              color = "cyan", fill = "white", alpha = 0.2, size = 1.5) +
+  
+  labs(
+    title = "Wpływ punktów usługowych (POI) na cenę metra kwadratowego",
+    subtitle = "Skala logarytmiczna i wygładzony trend GAM (dane do 180 POI)",
+    x = "Liczba punktów POI w zasięgu (poiCount)",
+    y = "Cena za m² (PLN, skala log)"
+  ) +
+  
+  theme_dark() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", color = "white"),
+    plot.subtitle = element_text(color = "#cccccc"),
+    axis.text = element_text(color = "#eeeeee"),
+    axis.title = element_text(color = "white"),
+    legend.background = element_rect(fill = "#333333"),
+    legend.text = element_text(color = "white"),
+    legend.title = element_text(color = "white"),
+    plot.background = element_rect(fill = "#222222"), 
+    panel.grid.major = element_line(color = "#444444"), 
+    panel.grid.minor = element_blank()
+  )
+
+wykres_fajerwerki
+```
+
+<div style="text-align: justify;">
+
+Wykres przedstawiający wpływ liczby punktów usługowych (POI) na cenę metra kwadratowego wykazuje wyraźną, nieliniową zależność wzrostową, w której bogatsza infrastruktura otoczenia bezpośrednio przekłada się na wyższą wycenę nieruchomości. Linia trendu GAM sugeruje, że największy przyrost wartości następuje w przedziale od 50 do 130 punktów usługowych, gdzie cena za m² stabilizuje się na poziomie powyżej 20 000 PLN, co odzwierciedla rynkową premię za komfort życia w pełni zurbanizowanych dzielnicach. Największa koncentracja ofert (żółte i pomarańczowe pola) występuje przy niskiej liczbie punktów POI i cenach rzędu 10 000 – 15 000 PLN, natomiast spadek linii trendu powyżej 150 punktów usługowych może sygnalizować nasycenie lub specyfikę bardzo gęstych centrów miast, gdzie hałas i brak prywatności zaczynają ograniczać dalszy wzrost stawek.
+
+</div>
+
+```{r Heatmapa V Cramera, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
+# 1. Biblioteki
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+
+# 2. Przygotowanie danych i wybór kolumn numerycznych
+data_corr <- apartments_final %>%
+  # Tworzymy nową zmienną: cena za metr kwadratowy
+  mutate(price_per_sqm = price / squareMeters) %>%
+  # Wybieramy zmienne
+  select(price_per_sqm, squareMeters, rooms, centreDistance, poiCount, buildYear) %>%
+  # ZMIANA NAZW NA POLSKIE
+  rename(
+    "Cena za m²" = price_per_sqm,
+    "Metraż" = squareMeters,
+    "Liczba pokoi" = rooms,
+    "Dystans do centrum" = centreDistance,
+    "Liczba POI" = poiCount,
+    "Rok budowy" = buildYear
+  ) %>%
+  na.omit()
+
+# 3. Obliczenie macierzy korelacji Pearsona
+corr_matrix <- cor(data_corr, method = "pearson")
+
+# 4. Przygotowanie do wykresu (trójkątna mapa)
+corr_matrix[upper.tri(corr_matrix)] <- NA
+melted_corr <- melt(corr_matrix, na.rm = TRUE)
+
+# 5. Wizualizacja
+ggplot(melted_corr, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  # Dodanie wartości korelacji na kafelkach
+  geom_text(aes(label = round(value, 2)), size = 4, fontface = "bold") +
+  # Skala kolorów: czerwony (ujemna), biały (zero), niebieski (dodatnia)
+  scale_fill_gradient2(low = "#e74c3c", high = "#3498db", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), 
+                       name = "Korelacja\nPearsona") +
+  theme_minimal() +
+  labs(title = "Co wpływa na cenę za m² mieszkania?",
+       subtitle = "Korelacja Pearsona dla zmiennych numerycznych",
+       x = NULL, y = NULL) +
+  theme(
+    axis.text = element_text(size = 10, face = "bold"),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    panel.grid = element_blank()
+  ) +
+  coord_fixed()
+```
+
+<div style="text-align: justify;">
+
+Macierz korelacji Pearsona wskazuje na zróżnicowany wpływ poszczególnych zmiennych na cenę za m², przy czym najsilniejszym dodatnim czynnikiem powiązanym z wartością jednostkową nieruchomości jest liczba punktów usługowych (POI) w zasięgu, co potwierdza wysoką rynkową wycenę infrastruktury miejskiej. Co ciekawe, metraż oraz liczba pokoi wykazują słabą korelację ujemną z ceną za m², co sugeruje, że wraz ze wzrostem całkowitej powierzchni mieszkania, stawka za pojedynczy metr kwadratowy ma tendencję do lekkiego spadku. Jednocześnie obserwujemy silne, naturalne współzależności między metrażem a liczbą pokoi (0.82) oraz istotną korelację ujemną między dystansem do centrum a liczbą punktów POI (-0.45), co dowodzi, że im dalej od serca miasta, tym uboższa staje się oferta usługowa, co pośrednio rzutuje na finalną wycenę lokalu.
+
+</div>
+
+```{r Podstawowe statystyki opisowe w podziale na miasta, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
+# 1. Instalacja i ładowanie niezbędnych bibliotek
+if (!require("e1071")) install.packages("e1071")
+if (!require("DT")) install.packages("DT") # Pakiet do interaktywnych tabel
+library(e1071)
+library(dplyr)
+library(tidyr)
+library(DT)
+
+# 2. Obliczanie statystyk (identycznie jak wcześniej)
+tabela_stylizowana <- apartments_final %>%
+  group_by(city) %>%
+  summarise(
+    Min = min(price, na.rm = TRUE),
+    Max = max(price, na.rm = TRUE),
+    `Kwartyl dolny` = quantile(price, 0.25, na.rm = TRUE),
+    Mediana = median(price, na.rm = TRUE),
+    `Kwartyl górny` = quantile(price, 0.75, na.rm = TRUE),
+    Średnia = mean(price, na.rm = TRUE),
+    `Odch. std.` = sd(price, na.rm = TRUE),
+    IQR = IQR(price, na.rm = TRUE),
+    `Odchylenie ćwiartkowe` = IQR(price, na.rm = TRUE) / 2,
+    `Odch. std. w %` = (sd(price, na.rm = TRUE) / mean(price, na.rm = TRUE)),
+    `Odch. ćwiartkowe w %` = (IQR(price, na.rm = TRUE) / 2) / median(price, na.rm = TRUE),
+    Skośność = skewness(price, na.rm = TRUE),
+    Kurtoza = kurtosis(price, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  pivot_longer(cols = -city, names_to = "Statystyka", values_to = "Wartość") %>%
+  pivot_wider(names_from = city, values_from = Wartość) %>%
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+# 3. Wyświetlenie tabeli z kolorowaniem co drugiego wiersza
+# 'stripe' odpowiada za paski, 'cell-border' za obramowanie komórek
+datatable(tabela_stylizowana, 
+          options = list(
+            pageLength = 15,    # Ile wierszy na start
+            scrollX = TRUE,     # Przewijanie w poziomie dla wielu miast
+            dom = 't'           # Wyświetla tylko tabelę (bez zbędnych filtrów DT)
+          ),
+          class = 'cell-border stripe', 
+          rownames = FALSE,
+          caption = 'Porównanie Statystyk Cenowych Miast (Zebra Stripes)')
+```
+
+```{r Statystyki opisowe w relacji, type a cena za metr kwadratowy, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
+# 1. Instalacja i ładowanie niezbędnych bibliotek
+if (!require("e1071")) install.packages("e1071")
+if (!require("DT")) install.packages("DT")
+library(e1071)
+library(dplyr)
+library(tidyr)
+library(DT)
+
+# 2. Przygotowanie statystyk i zmiana nazw na polskie w jednym kroku
+tabela_polskie_nazwy <- apartments_final %>%
+  mutate(price_per_sqm = price / squareMeters) %>%
+  filter(!is.na(type)) %>%
+  # Tutaj zmieniamy nazwy wartości w kolumnie 'type' zanim ją obrócimy
+  mutate(type = case_when(
+    type == "apartmentBuilding" ~ "Apartamentowiec",
+    type == "blockOfFlats" ~ "Blok",
+    type == "tenement" ~ "Kamienica",
+    TRUE ~ type
+  )) %>%
+  group_by(type) %>%
+  summarise(
+    Min = min(price_per_sqm, na.rm = TRUE),
+    Max = max(price_per_sqm, na.rm = TRUE),
+    `Kwartyl dolny` = quantile(price_per_sqm, 0.25, na.rm = TRUE),
+    Mediana = median(price_per_sqm, na.rm = TRUE),
+    `Kwartyl górny` = quantile(price_per_sqm, 0.75, na.rm = TRUE),
+    Średnia = mean(price_per_sqm, na.rm = TRUE),
+    `Odch. std.` = sd(price_per_sqm, na.rm = TRUE),
+    IQR = IQR(price_per_sqm, na.rm = TRUE),
+    `Odchylenie ćwiartkowe` = IQR(price_per_sqm, na.rm = TRUE) / 2,
+    `Odch. std. w %` = (sd(price_per_sqm, na.rm = TRUE) / mean(price_per_sqm, na.rm = TRUE)),
+    `Odch. ćwiartkowe w %` = (IQR(price_per_sqm, na.rm = TRUE) / 2) / median(price_per_sqm, na.rm = TRUE),
+    Skośność = skewness(price_per_sqm, na.rm = TRUE),
+    Kurtoza = kurtosis(price_per_sqm, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  # 2. Transpozycja (teraz type ma już polskie nazwy, więc pivot_wider zrobi polskie kolumny)
+  pivot_longer(cols = -type, names_to = "Statystyka", values_to = "Wartość") %>%
+  pivot_wider(names_from = type, values_from = Wartość) %>%
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+# 3. Wyświetlenie tabeli
+datatable(tabela_polskie_nazwy, 
+          options = list(
+            pageLength = 15, 
+            dom = 't',          
+            scrollX = TRUE,     
+            ordering = FALSE    
+          ),
+          class = 'cell-border stripe', 
+          rownames = FALSE,
+          caption = 'Statystyki opisowe ceny za m² w zależności od typu zabudowy')
+```
