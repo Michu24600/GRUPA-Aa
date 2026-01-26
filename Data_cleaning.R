@@ -84,7 +84,7 @@ rules_apartments <- validator(
     pharmacyDistance > 0
 )
 
-### WERSJA BARPLOT 1: PRZED CZYSZCZENIEM ###
+### WERSJA BARPLOT 1: PRZED CZYSZCZENIEM ####
 
 # 2. Konfrontacja reguł z danymi (apartments_imputed_city_knn)
 cf_apartments <- confront(apartments_data_2024_06, rules_apartments)
