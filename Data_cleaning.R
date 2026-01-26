@@ -1137,33 +1137,74 @@ datatable(tabela_polskie_nazwy,
 # ANOVA: Czy średnia cena za m2 różni się istotnie między miastami?
 # -----------------------------------------------------------------------------
 
-# 1. Załadowanie biblioteki
+# 1. Załadowanie niezbędnych bibliotek
 library(ggstatsplot)
 library(dplyr)
 
-# 2. Przygotowanie danych (obliczenie ceny za m2 i czyszczenie)
-anova_data <- apartments_final %>%
+# 2. Przygotowanie danych (cena za m2 dla wszystkich)
+anova_data_all <- apartments_final %>%
   mutate(price_per_sqm = price / squareMeters) %>%
-  filter(!is.na(price_per_sqm), !is.na(city)) %>%
-  # Opcjonalnie: wybór kilku miast, aby wykres był bardziej czytelny i uniknąć błędu palety
-  filter(city %in% c("warszawa", "krakow", "wroclaw", "gdansk", "poznan", "lodz")) %>%
-  mutate(city = as.factor(city))
+  filter(!is.na(price_per_sqm))
 
-# 3. Wykonanie wykresu i testu statystycznego
-ggbetweenstats(
-  data = anova_data,
-  x = city,                  # Twoja zmienna kategoryczna (odpowiednik 'cyl')
-  y = price_per_sqm,         # Twoja zmienna ilościowa (odpowiednik 'mpg')
-  type = "p",                # Test parametryczny (ANOVA)
-  conf.level = 0.95,         # Poziom ufności
-  var.equal = FALSE,         # Założenie o niejednorodności wariancji (Test Welcha) - bezpieczniejsze dla miast
-  pairwise.display = "significant", # Wyświetla klamerki tylko dla istotnych statystycznie różnic
-  bf.message = FALSE,        # Wyłącza informację o czynniku Bayesa (czyściej na wykresie)
-  
-  # Dodatkowe parametry dla estetyki i czytelności:
-  title = "Porównanie średnich cen za m² między miastami",
-  xlab = "Miasto",
-  ylab = "Cena za metr kwadratowy (PLN)",
-  palette = "Set2",          # Paleta obsługująca więcej kolorów niż Tableau_10
-  package = "RColorBrewer"
+# 3. Wykonanie wykresu rozkładu z testem statystycznym
+plt_all <- gghistostats(
+  data = anova_data_all,
+  x = price_per_sqm,          # Analizowana zmienna
+  title = "Ogólnopolski rozkład cen za m²",
+  xlab = "Cena za m² (PLN)",
+  type = "parametric",        # Test t-Studenta dla jednej próby
+  test.value = 12000,         # Przykładowa wartość testowa (np. średnia z poprzedniego roku do porównania)
+  centrality.plotting = TRUE, # Linia pokazująca średnią/medianę
+  bin.args = list(fill = "#4E84C4", color = "white", alpha = 0.8),
+  messages = FALSE,
+  bf.message = FALSE
 )
+
+# 4. Wyświetlenie wykresu
+print(plt_all)
+
+# -----------------------------------------------------------------------------
+
+# 1. Załadowanie niezbędnych bibliotek
+library(ggstatsplot)
+library(dplyr)
+library(ggplot2)
+
+# 2. Przygotowanie danych (filtrowanie wybranych miast)
+anova_3_miasta <- apartments_final %>%
+  mutate(price_per_sqm = price / squareMeters) %>%
+  filter(city %in% c("warszawa", "gdansk", "krakow")) %>%
+  # Upewniamy się, że nazwy miast są ładnie sformatowane (opcjonalnie)
+  mutate(city = tools::toTitleCase(city),
+         city = as.factor(city))
+
+# 3. Wykonanie wykresu ANOVA dla Warszawy, Gdańska i Krakowa
+plt_3 <- ggbetweenstats(
+  data = anova_3_miasta,
+  x = city,
+  y = price_per_sqm,
+  type = "p",               # Test parametryczny (Welch's ANOVA)
+  conf.level = 0.95,
+  var.equal = FALSE,        # Test Welcha (bezpieczniejszy przy różnych wariancjach)
+  pairwise.display = "all", # Pokaż wszystkie porównania (przy 3 miastach to tylko 3 klamerki)
+  bf.message = FALSE,       # Ukrywamy komunikat o czynniku Bayesa dla przejrzystości
+  
+  # Estetyka
+  title = "Porównanie cen za m²: Warszawa vs Gdańsk vs Kraków",
+  subtitle = "Analiza statystyczna różnic między kluczowymi rynkami",
+  xlab = "Miasto",
+  ylab = "Cena za m² (PLN)",
+  palette = "Set1",          # Wyraźna paleta kolorów
+  package = "RColorBrewer",
+  
+  # Ograniczamy zakres osi Y, jeśli masz bardzo wysokie outliery (opcjonalnie)
+  # ggplot.component = list(coord_cartesian(ylim = c(0, 40000)))
+) +
+  # Dodatkowe dostosowanie wyglądu przez ggplot2
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12)
+  )
+
+# 4. Wyświetlenie wykresu
+print(plt_3)

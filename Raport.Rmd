@@ -845,3 +845,4 @@ datatable(tabela_polskie_nazwy,
           rownames = FALSE,
           caption = 'Statystyki opisowe ceny za m² w zależności od typu zabudowy')
 ```
+
