@@ -1,24 +1,24 @@
 ---
 title: "Analiza Rynku Mieszkaniowego"
-subtitle: "Raport analityczny "
+subtitle: "Raport analityczny"
 author: "Kacper Ciszewski, Michał Dalach, Wiktor Drozdowski"
 date: "`r Sys.Date()`"
-odate: "`r Sys.Date()`"
 output: 
   html_document:
     theme: 
-      bootstrap: 5
-      base_font: !expr bslib::font_google("Outfit") # Nowoczesny, geometryczny font
+      version: 5
+      base_font: !expr bslib::font_google("Outfit")
       heading_font: !expr bslib::font_google("Montserrat")
-      primary: "#2C3E50" # Ciemny granat korporacyjny
-      secondary: "#E74C3C" # Akcent czerwony dla kontrastu
-    toc: true              
+      primary: "#2C3E50"
+      secondary: "#E74C3C"
+    toc: true
     toc_float: 
       collapsed: true
     smooth_scroll: true
     number_sections: false
-    highlight: pygments 
-  
+    highlight: pygments
+  pdf_document:
+    toc: true
 ---
 
 <script>
@@ -1365,10 +1365,49 @@ Wartość udogodnienia:
 Mieszkania w budynkach z windą są średnio o blisko 180 tys. PLN droższe (śr. ~914 tys. PLN) niż te bez windy (~736 tys. PLN).Kontekst: Należy pamiętać, że winda często koreluje z nowszym budownictwem (apartamentowce) lub wyższym standardem, podczas gdy brak windy jest typowy dla starszych bloków z wielkiej płyty (do 4 pięter) i kamienic, co dodatkowo pogłębia różnicę cenową.
 </div>
 
-
-
-
 # 4.Podsumowanie
 
+## 4.1. Charakterystyka Cenowa i Struktura Rynku
+<div class="info-box">
+Przeprowadzona analiza danych rynkowych z 2024 roku ujawnia obraz rynku nieruchomości cechującego się silną asymetrią prawostronną oraz wysokim progiem wejścia. Dominujący wolumen transakcyjny koncentruje się w przedziale 500 000 – 850 000 PLN, co wyznacza obecny standard cenowy dla typowego nabywcy. Rynek poniżej 250 000 PLN praktycznie przestał istnieć, co świadczy o postępującej inflacji aktywów.Istotnym zjawiskiem jest obecność segmentu luksusowego (powyżej 1,5 mln PLN), który – choć nieliczny wolumenowo – drastycznie zawyża średnią arytmetyczną cen. Z tego powodu to mediana pozostaje najbardziej rzetelnym wskaźnikiem wartości rynkowej. Obserwujemy wyraźną korelację między metrażem a ryzykiem inwestycyjnym: segment mieszkań 1- i 2-pokojowych jest stabilny i jednorodny, podczas gdy rynek lokali 3- i 4-pokojowych wykazuje ogromną dyspersję cenową, wynikającą z silnie rozwiniętego sektora premium.
+</div>
+## 4.2. Hierarchia Typów Zabudowy i StandarduBadanie
+<div class="info-box">
+struktury cenowej wg typu zabudowy (testy ANOVA) potwierdza istnienie sztywnej hierarchii prestiżu:
+
+Apartamentowce: Lider rynku pod względem mediany cen (~1,13 mln PLN) i stabilności inwestycyjnej. To segment najdroższy, charakteryzujący się najniższym współczynnikiem zmienności.
+
+Kamienice: Rynek o charakterze dwumodalnym i najwyższym ryzyku (największy rozstęp międzykwartylowy). Ceny są spolaryzowane między zrujnowanymi lokalami a luksusowymi rewitalizacjami.
+
+Bloki: Najbardziej przewidywalny i przystępny cenowo segment (śr. ~713 tys. PLN), stanowiący fundament rynku masowego.
+
+Analiza techniczna wykazała gigantyczną premię za udogodnienia: obecność windy podnosi średnią wartość mieszkania o blisko 180 000 PLN, a lokale na wysokich piętrach (11+) są wyceniane istotnie wyżej niż te na niższych kondygnacjach, co potwierdza zjawisko „premii za widok”.
+</div>
+## 4.3. Geografia Cen i Modele Rozwoju Miast
+<div class="info-box">
+Polska pozostaje rynkiem głęboko spolaryzowanym. Warszawa (śr. >18 000 PLN/m²) deklasuje pozostałe ośrodki, tworząc wraz z Trójmiastem i Krakowem grupę „rynków tier-1”. Miasta takie jak Radom czy Częstochowa, z cenami poniżej 7 500 PLN/m², stanowią odrębny biegun ekonomiczny.
+
+Szczegółowa analiza porównawcza Warszawy i Gdańska ujawniła dwa odmienne modele urbanistyczne:
+
+Warszawa (Model Monocentryczny):Występuje tu klasyczna renta lokalizacyjna – cena spada liniowo wraz z oddalaniem się od Pałacu Kultury. Nowe inwestycje są wypychane na peryferia („efekt obwarzanka”), tworząc jasny pierścień nowej zabudowy wokół ciemniejszego, historycznego rdzenia.
+
+Gdańsk (Model Policentryczny/Pasmowy): Ceny nie spadają liniowo.Nowa zabudowa nie otacza miasta, lecz ekspanduje na południe oraz wypełnia luki w pasie nadmorskim.
+</div>
+## 4.4. Wpływ Infrastruktury (POI) na Wycenę
+<div class="info-box">
+Analiza korelacji wskazuje, że dostępność usług (Points of Interest) jest najsilniejszym pozytywnym predyktorem ceny za m². Zależność ta nie jest jednak liniowa – rynek najlepiej wycenia lokalizacje z 50–130 punktami usługowymi w zasięgu (cena >20 000 PLN/m²). Powyżej tej liczby (ścisłe, głośne centra) wzrost cen wyhamowuje. Potwierdza to tezę, że nabywcy szukają kompromisu między dostępnością usług a komfortem życia.
+</div>
+## 4.5. Wnioski z Wnioskowania Statystycznego
+<div class="info-box">
+Przeprowadzone testy parametryczne (Welch ANOVA, Games-Howell) na próbie ponad 20 tys. ofert pozwoliły na sformułowanie wniosków o wysokim poziomie istotności statystycznej ($p < 0.001$):
+
+Typ budynku jest kluczowym dyskryminatorem ceny (apartamentowiec > kamienica > blok).
+
+Lokalizacja wertykalna ma znaczenie: najwyższe piętra są towarem luksusowym, partery i niskie piętra są wyceniane niżej.
+
+Infrastruktura bezpośrednio przekłada się na wartość: strefy o wysokim nasyceniu POI są średnio o 140 000 PLN droższe od stref o nasyceniu średnim.
+
+Konkluzja: Rynek w 2024 roku jest rynkiem dojrzałym, ale silnie rozwarstwionym. Najbezpieczniejszymi aktywami są małe i średnie lokale w apartamentowcach oraz nieruchomości w dobrze skomunikowanych dzielnicach Gdańska i Warszawy. Inwestycje w duże metraże (>4 pokoje) oraz kamienice obarczone są znacznie wyższym ryzykiem zmienności cenowej.
+</div>
 
 
