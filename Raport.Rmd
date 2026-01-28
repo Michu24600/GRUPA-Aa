@@ -1,51 +1,94 @@
 ---
 title: "Analiza Rynku Mieszkaniowego"
 subtitle: "Raport analityczny "
-author: "Grupa AA"
+author: "Kacper Ciszewski, Michał Dalach, Wiktor Drozdowski"
 date: "`r Sys.Date()`"
+odate: "`r Sys.Date()`"
 output: 
   html_document:
     theme: 
       bootstrap: 5
-      base_font: !expr bslib::font_google("Inter")
-      primary: "#27323E" # kolor Twojego nagłówka ze zdjęcia
-    toc: true             
-    toc_float: true        
-    number_sections: false 
+      base_font: !expr bslib::font_google("Outfit") # Nowoczesny, geometryczny font
+      heading_font: !expr bslib::font_google("Montserrat")
+      primary: "#2C3E50" # Ciemny granat korporacyjny
+      secondary: "#E74C3C" # Akcent czerwony dla kontrastu
+    toc: true              
+    toc_float: 
+      collapsed: true
+    smooth_scroll: true
+    number_sections: false
+    highlight: pygments # Ładniejsze kolorowanie kodu
 ---
 
 <style>
-/* Styl dla nagłówka stopnia 1 (np. # 2.) */
-h1 {
-  font-size: 2.2em;
-  font-weight: bold;
-  color: #2c3e50;
-  margin-top: 30px;
-}
-
-/* Styl dla nagłówka stopnia 2 (np. ## 2.2.) - TUTAJ GO ZMNIEJSZAMY */
-h2 {
-  font-size: 1.3em; /* Mniejszy rozmiar */
-  font-weight: bold;
-  color: #34495e;
-  margin-top: 20px;
-  border-bottom: 1px solid #eeeeee; /* Subtelna linia pod spodem */
-  padding-bottom: 5px;
-}
-
-/* Opcjonalnie: automatyczne wyjustowanie całego tekstu w raporcie */
+/* Główny kontener raportu */
 body {
-  text-align: justify;
+  background-color: #f8f9fa; /* Delikatne szare tło, by białe wykresy "wychodziły" do przodu */
+  color: #333333;
+  line-height: 1.7;
 }
-</style>
 
-<style>
-img {
-  border: 2px solid #2c3e50; /* Grubość, styl i kolor ramki */
-  border-radius: 5px;        /* Zaokrąglone rogi */
-  padding: 5px;              /* Odstęp między wykresem a ramką */
-  margin: 10px 0;            /* Odstęp od tekstu */
-  box-shadow: 2px 2px 10px rgba(0,0,0,0.1); /* Subtelny cień */
+/* Karta z treścią */
+.main-container {
+  max-width: 1100px !important;
+  background-color: white;
+  padding: 40px !important;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  margin-top: 30px;
+  border-radius: 8px;
+}
+
+/* Nagłówki */
+h1 {
+  color: #2C3E50;
+  font-weight: 800;
+  border-left: 6px solid #2C3E50;
+  padding-left: 15px;
+  margin-top: 1.5em;
+}
+
+h2 {
+  color: #34495E;
+  font-weight: 700;
+  margin-top: 1.2em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 1.2em;
+}
+
+/* Stylowanie tabel DT */
+.dataTables_wrapper {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9em;
+}
+
+/* Pływające menu (TOC) */
+#TOC {
+  border: none;
+  background-color: rgba(255,255,255,0.8);
+  backdrop-filter: blur(5px);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* Wykresy i obrazki */
+img, .plotly, .html-widget {
+  border-radius: 12px;
+  transition: transform .3s; /* Efekt po najechaniu */
+}
+
+img:hover {
+  transform: scale(1.01);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+}
+
+/* Wyróżnione bloki tekstu (zastąp divy tymi klasami) */
+.info-box {
+  padding: 20px;
+  background-color: #e9ecef;
+  border-radius: 10px;
+  border-left: 5px solid #2C3E50;
+  margin: 20px 0;
 }
 </style>
 
@@ -88,19 +131,19 @@ library(shinythemes)
 ```
 
 # 1. Wstęp i Cel Projektu
-
+<div class="info-box">
 **🎯 Cel Analizy**: Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada *dwuetapową weryfikację hipotez*: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
-
+</div>
 ## 1.1 O Danych
-
+<div class="info-box">
 Analiza została przeprowadzona na zbiorze danych zawierającym oferty sprzedaży mieszkań z czerwca 2024 roku.
 
-Źródło danych:\*\* [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>]
-
+**Źródło danych:** [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>] 
+</div>
 ## 1.2. 📖 Słownik Zmiennych (Data Dictionary)
-
+<div class="info-box">
 Poniższa tabela przedstawia opis zmiennych dostępnych w analizowanym zbiorze danych:
-
+</div>
 ```{r data_dictionary, echo=FALSE,message=FALSE,warning=FALSE}
 # Najpierw upewnij się, że masz pakiet: install.packages("kableExtra")
 library(kableExtra)
@@ -135,11 +178,11 @@ kbl(slownik, caption = "Słownik Zmiennych (Data Dictionary)") %>%
 ```
 
 # 2. Porządkowanie i czyszczenie danych
-
+<div class="info-box">
 Proces przygotowania danych do analizy został podzielony na kilka kluczowych etapów: definicję reguł poprawności, wstępną walidację, imputację braków danych (metodami statystycznymi i uczenia maszynowego) oraz weryfikację końcową.
-
+</div>
 ## 2.1. Definicja Reguł Walidacyjnych
-
+<div class="info-box">
 Przed przystąpieniem do czyszczenia zdefiniowano zestaw reguł logicznych przy użyciu pakietu validate. Pozwoliło to na identyfikację błędów w surowym zbiorze danych.
 
 Sprawdzono m.in.:
@@ -155,7 +198,7 @@ Geolokalizację: Czy współrzędne geograficzne znajdują się w granicach Pols
 Kompletność dystansów: Czy odległości do punktów POI są wartościami dodatnimi.
 
 Wstępna walidacja wykazała naruszenia, które zostały skorygowane w kolejnych krokach.
-
+</div>
 ```{r Wykres obrazujący naruszenia, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
 if (!require("validate")) install.packages("validate")
 library(validate)
@@ -224,7 +267,7 @@ legend("center",
 ```
 
 ## 2.2. Strategia Czyszczenia i Imputacji
-
+<div class="info-box">
 Wdrożono wieloetapowy potok przetwarzania danych (pipeline), obejmujący:
 
 Wykluczenie zmiennych buildingMaterial oraz condition. Decyzja ta została podyktowana znacznym stopniem niekompletności danych (brakujące wartości) oraz niską jakością informacji źródłowych, co uniemożliwiało przeprowadzenie rzetelnej analizy statystycznej w tym zakresie.
@@ -238,7 +281,7 @@ Informację o windzie (hasElevator) wywnioskowano na podstawie wysokości budynk
 Imputacja statystyczna (Dystanse): Brakujące odległości do punktów usługowych (\*Distance) uzupełniono średnią arytmetyczną obliczoną lokalnie dla każdego miasta.
 
 Imputacja algorytmiczna (kNN): Brakujący rok budowy (buildYear) uzupełniono metodą k-Najbliższych Sąsiadów (kNN), bazując na podobieństwie pod względem liczby punktów POI oraz odległości od centrum.
-
+</div>
 ```{r cleaning_logic, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 # Definicja kolumn do imputacji średnią
 distance_cols <- c(
@@ -290,9 +333,9 @@ apartments_processed <- apartments_data_2024_06 %>%
 ```
 
 ## 2.3. Zaawansowana Imputacja (Random Forest)
-
+<div class="info-box">
 Do uzupełnienia braków w kluczowej zmiennej kategorycznej type (rodzaj zabudowy) zastosowano model uczenia maszynowego Random Forest (las losowy). Model został wytrenowany na kompletnych obserwacjach (500 drzew decyzyjnych), a następnie wykorzystany do predykcji typu budynku dla brakujących rekordów, co pozwoliło na zachowanie struktury danych lepiej niż proste uzupełnienie dominantą.
-
+</div>
 ```{r random_forest, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, results='hide'}
 # -----------------------------------------------------------------------------
 # Imputacja Random Forest (Type)
@@ -328,7 +371,7 @@ apartments_final <- apartments_processed %>%
 ```
 
 ## 2.4. Wyniki i Weryfikacja Końcowa
-
+<div class="info-box">
 Po zakończeniu procesu czyszczenia przeprowadzono:
 
 Ponowną walidację: Sprawdzono zgodność danych z regułami validate.
@@ -336,7 +379,7 @@ Ponowną walidację: Sprawdzono zgodność danych z regułami validate.
 Analizę braków (naniar): Potwierdzono wyeliminowanie kluczowych braków danych.
 
 Zapis: Przetworzony zbiór danych został zapisany do pliku .RData w celu optymalizacji wydajności raportu.
-
+</div>
 ```{r Wykres obrazujący naruszenia po czyszczeniu, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
 if (!require("validate")) install.packages("validate")
 library(validate)
@@ -403,7 +446,7 @@ legend("center",
 
 # 3. Analiza opisowa rynku nieruchomości
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Rozdział ten stanowi szczegółową analizę zebranych danych, mającą na celu zrozumienie mechanizmów rządzących polskim rynkiem nieruchomości w 2026 roku. Przeprowadzona analiza opisowa pozwala zidentyfikować kluczowe trendy cenowe oraz zrozumieć, jakie czynniki techniczne i lokalizacyjne w największym stopniu kształtują wartość ofert. Dzięki wykorzystaniu miar tendencji centralnej oraz metod wizualizacji, możliwe jest oddzielenie typowych transakcji od zjawisk o charakterze luksusowym czy marginalnym. Stanowi to fundament do dalszych, bardziej zaawansowanych wniosków dotyczących opłacalności inwestycji w konkretnych segmentach rynku.
 
@@ -427,7 +470,7 @@ print(plot1)
 ```
 
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Rozkład cen cechuje się silną asymetrią prawostronną, z największą koncentracją ofert w przedziale od 500 000 do 850 000 PLN. Dominacja tego segmentu wyznacza rynkowy standard cenowy, podczas gdy oferty powyżej 1,5 mln PLN stanowią nieliczną grupę nieruchomości luksusowych. Wyraźny brak ogłoszeń poniżej 250 000 PLN definiuje wysoki próg wejścia na badany rynek. Obecność wartości odstających, sięgających nawet 3 mln PLN, powoduje, że średnia arytmetyczna jest zawyżona. W konsekwencji to mediana, a nie średnia, najlepiej oddaje realny koszt zakupu typowego mieszkania.
 
@@ -451,7 +494,7 @@ print(plot2)
 ```
 
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Wykres prezentuje wyraźną korelację dodatnią między liczbą pokoi a ceną nieruchomości, przy czym wraz ze wzrostem metrażu obserwuje się nie tylko wzrost mediany, ale także znaczące rozszerzenie rozstępu międzykwartylowego. Rynek mieszkań 1- i 2-pokojowych charakteryzuje się największą stabilnością i koncentracją cenową, gdzie niski próg wejścia oscyluje wokół 400 000 PLN, natomiast segmenty 3- i 4-pokojowe wykazują silną asymetrię prawostronną z licznymi wartościami odstającymi sięgającymi nawet 3 mln PLN. Obecność tak wysokich wartości ekstremalnych w segmencie średniej wielkości mieszkań świadczy o silnie rozwiniętym rynku premium, który istotnie zawyża średnią arytmetyczną, czyniąc medianę najbezpieczniejszym wskaźnikiem typowej ceny transakcyjnej. W przypadku największych lokali, mających 5 i 6 pokoi, korpusy wykresów stają się znacznie wyższe, co sugeruje, że w tej kategorii liczba pokoi przestaje być dominującym czynnikiem cenotwórczym na rzecz standardu wykończenia i prestiżowej lokalizacji. Całość obrazuje strukturę rynkową, w której ryzyko cenowe i dyspersja ofert rosną progresywnie wraz z wielkością nieruchomości, definiując rynek o wysokim stopniu zróżnicowania jakościowego.
 
@@ -485,93 +528,111 @@ print(plot3)
 ```
 
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Analiza wykresu skrzypcowego (violin plot) wskazuje na istotne różnice w strukturze cenowej w zależności od typu zabudowy, przy czym segment apartamentowców charakteryzuje się najwyższą medianą cen oraz najbardziej rozciągniętym prawostronnym ogonem rozkładu. W przeciwieństwie do bloków, które wykazują największą koncentrację ofert w węższym przedziale cenowym i relatywnie najniższy próg wejścia, kamienice prezentują specyficzny, dwumodalny charakter rozkładu sugerujący podział na lokale standardowe oraz nieruchomości zrewitalizowane o znacznie wyższej wartości. Największą gęstość prawdopodobieństwa dla wszystkich typów zabudowy obserwujemy w przedziale od 600 000 do 1 100 000 PLN, jednak to apartamentowce wykazują najszerszy rozstęp międzykwartylowy, co świadczy o największym zróżnicowaniu standardu w tej kategorii. Wyraźne wydłużenie „szyjek” wykresów w stronę wartości przekraczających 2 mln PLN, szczególnie widoczne w przypadku kamienic i apartamentowców, potwierdza występowanie silnej asymetrii dodatniej i unikalnych ofert luksusowych, które kształtują górną granicę badanego rynku. Całość zestawienia dowodzi, że o ile blokowiska stanowią najbardziej przewidywalny i jednorodny segment cenowy, o tyle inwestycja w apartamenty lub kamienice wiąże się z większą dyspersją kosztów i obecnością ofert o charakterze wybitnie prestiżowym.
 
 </div>
 
-```{r Interaktywna mapa punktowa cen nieruchomości, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+```{r Interaktywna mapa punktowa, echo=FALSE, message=FALSE, warning=FALSE, out.width="80%", fig.align="center"}
 paleta <- colorNumeric(
   palette = "magma", 
   domain = apartments_final$price,
   reverse = TRUE )
 
-mapa <- apartments_final %>%
+mapa<-apartments_final %>%
   sample_n(min(21240, nrow(apartments_final))) %>% 
-  leaflet() %>%
+  leaflet(height = 500) %>% # Tutaj możesz ręcznie sterować wysokością w pikselach
   addTiles() %>% 
+  # WYŚRODKOWANIE NA POLSKĘ:
+  setView(lng = 19.145, lat = 51.919, zoom = 6) %>% 
   addCircleMarkers(
     lng = ~longitude,
     lat = ~latitude,
-    radius = 6,
+    radius = 4, # Zmniejszyłem odrobinę kropki, by przy mniejszej mapie były czytelne
     color = ~paleta(price), 
     fillOpacity = 0.8,
     stroke = FALSE,
-    popup = ~paste0("Cena: ", price, " PLN"),
+    popup = ~paste0("<b>Cena:</b> ", format(price, big.mark = " "), " PLN"),
     label = ~as.character(price)
   ) %>%
-  
   addLegend(
     "bottomright", 
-    pal = paleta,      # I tu znowu używamy palety
+    pal = paleta, 
     values = ~price,
     title = "Cena",
     opacity = 1
   )
 mapa
 ```
+<style>
+.leaflet {
+    margin-left: auto;
+    margin-right: auto;
+    border: 2px solid #2c3e50; 
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+</style>
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Mapa punktowa ofert prezentuje możliwość oceny koncentracji ofert w miastach wraz z rozkładem cen w odróżnienu od innych miast, ale również dzielnic. Mapa ukazuje różnice cenowe między dzielnicami centralnymi, a obrzeżami zwanymi dzielnicami mieszkalnymi.
 
 </div>
 
-```{r Wykres z bombelkami dla średniej ceny w miastach przeskalowany, echo=FALSE, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
-city_stats <- apartments_final %>%
-  group_by(city) %>% 
-  summarise(
-    avg_price = mean(price, na.rm = TRUE),      # Średnia cena
-    avg_lat   = mean(latitude, na.rm = TRUE),   # Środek miasta (szerokość)
-    avg_lng   = mean(longitude, na.rm = TRUE),  # Środek miasta (długość)
-    offer_count = n()                           
-  )
 
+```{r Wykres_babelkowy_miast, echo=FALSE, message=FALSE, warning=FALSE, out.width="85%", fig.align="center"}
+# Obliczamy statystyki raz
 city_stats_scaled <- apartments_final %>%
   group_by(city) %>%
   summarise(
     avg_price = mean(price, na.rm = TRUE),
     avg_lat   = mean(latitude, na.rm = TRUE),
     avg_lng   = mean(longitude, na.rm = TRUE),
-    offer_count = n()
+    offer_count = n(),
+    .groups = "drop"
   ) %>%
   mutate(
     scaled_radius = scales::rescale(sqrt(offer_count), to = c(5, 35))
   )
 
-paleta_miasta <- colorNumeric(palette = "viridis", domain = city_stats_scaled$avg_price, reverse = TRUE)
+# Definicja palety
+paleta_miasta <- colorNumeric(
+  palette = "viridis", 
+  domain = city_stats_scaled$avg_price, 
+  reverse = TRUE
+)
 
-mapa_pro <- city_stats_scaled %>%
-  leaflet() %>%
+# Renderowanie mapy - poprawione
+city_stats_scaled %>%
+  leaflet(height = 500) %>%
   addTiles() %>%
+  setView(lng = 19.145, lat = 51.919, zoom = 6) %>% 
   addCircleMarkers(
     lng = ~avg_lng,
     lat = ~avg_lat,
     radius = ~scaled_radius, 
-
-    color = ~paleta_miasta(avg_price),
-    fillOpacity = 0.8,
-    stroke = FALSE,
-    popup = ~paste0("<b>Miasto:</b> ", city, "<br><b>Oferty:</b> ", offer_count),
+    fillColor = ~paleta_miasta(avg_price), # To wypełnia środek
+    fillOpacity = 0.7,
+    stroke = TRUE,        # Włączamy obramowanie
+    weight = 1,           # Grubość obramowania
+    color = "white",      # Kolor obramowania (to tutaj był błąd!)
+    popup = ~paste0("<b>Miasto:</b> ", city, 
+                    "<br><b>Średnia cena:</b> ", format(round(avg_price), big.mark = " "), " PLN",
+                    "<br><b>Liczba ofert:</b> ", offer_count),
     label = ~city
   ) %>%
-  addLegend("bottomright", pal = paleta_miasta, values = ~avg_price, title = "Średnia cena")
+  addLegend(
+    "bottomright", 
+    pal = paleta_miasta, 
+    values = ~avg_price, 
+    title = "Średnia cena",
+    labFormat = labelFormat(suffix = " PLN", big.mark = " ")
+  )
 
-mapa_pro
 ```
-
-<div style="text-align: justify;">
+<div class="info-box">
 
 Mapa bąbelkowa uwidacznia drastyczne dysproporcje w średnich cenach mieszkań, gdzie dominująca wielkość i ciemny kolor bąbla nad Warszawą wyznacza ogólnokrajowy szczyt cenowy przekraczający 1 000 000 PLN. Wysoki poziom cenowy utrzymuje się również w aglomeracji krakowskiej i trójmiejskiej, podczas gdy mniejsze ośrodki, takie jak Radom czy Częstochowa, reprezentowane są przez jasne punkty sygnalizujące znacznie niższy koszt zakupu nieruchomości. Rozkład ten potwierdza, że kapitał jest silnie skoncentrowany w kilku kluczowych metropoliach, co tworzy wyraźny podział na drogie rynki regionalne i bardziej przystępne cenowo obszary reszty kraju.
 
@@ -603,7 +664,7 @@ apartments_final %>%
   theme_minimal()
 ```
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Wykres słupkowy prezentuje wyraźną hierarchię cenową polskich miast, w której Warszawa deklasuje pozostałe ośrodki z rekordową średnią stawką przekraczającą 18 000 PLN za m². Drugi segment rynku tworzą Kraków oraz Gdańsk, gdzie ceny oscylują w granicach 15 000 – 17 000 PLN, podczas gdy na przeciwległym biegunie znajdują się Radom i Częstochowa z ofertami poniżej 7 500 PLN za m². Tak duża rozpiętość — sięgająca ponad 150% między stolicą a miastami o najniższych stawkach — obrazuje głębokie rozwarstwienie ekonomiczne kraju i koncentrację popytu inwestycyjnego w kilku kluczowych metropoliach.
 
@@ -635,7 +696,7 @@ wykres_odleglosci_polska <- apartments_final %>%
 print(wykres_odleglosci_polska)
 ```
 
-<div style="text-align: justify;">
+<div class="info-box">
 Wykres rozrzutu z linią trendu GAM obrazuje złożoną zależność ceny za m² od odległości lokalu od centrum, podważając prosty schemat liniowego spadku wartości wraz z oddalaniem się od rdzenia miasta. Choć najwyższe stawki jednostkowe, przekraczające 25 000 PLN, koncentrują się w bezpośrednim sąsiedztwie centrum (0–2 km), linia trendu wykazuje charakterystyczne falowanie, z lokalnym wzrostem cen w okolicach 10. kilometra, co sugeruje wysoką wycenę prestiżowych dzielnic sypialnianych oraz nowoczesnych osiedli apartamentowych na obrzeżach metropolii. Ogromna chmura punktów poniżej 15 000 PLN, rozciągająca się jednostajnie wzdłuż całej osi odległości, świadczy o szerokiej dostępności lokali o niższym standardzie niezależnie od lokalizacji, podczas gdy wyraźne zwężenie rozkładu powyżej 15 km sygnalizuje ostateczny spadek stawek na terenach podmiejskich. W efekcie wykres dowodzi, że o ile ścisłe centrum generuje rekordowe ceny ofertowe, o tyle wtórne rynki lokalne i segmenty premium poza centrum skutecznie stabilizują średnią cenę za metr kwadratowy na poziomie około 15 000 PLN dla większości badanego obszaru.
 
 </div>
@@ -683,7 +744,7 @@ wykres_fajerwerki <- apartments_final %>%
 wykres_fajerwerki
 ```
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Wykres przedstawiający wpływ liczby punktów usługowych (POI) na cenę metra kwadratowego wykazuje wyraźną, nieliniową zależność wzrostową, w której bogatsza infrastruktura otoczenia bezpośrednio przekłada się na wyższą wycenę nieruchomości. Linia trendu GAM sugeruje, że największy przyrost wartości następuje w przedziale od 50 do 130 punktów usługowych, gdzie cena za m² stabilizuje się na poziomie powyżej 20 000 PLN, co odzwierciedla rynkową premię za komfort życia w pełni zurbanizowanych dzielnicach. Największa koncentracja ofert (żółte i pomarańczowe pola) występuje przy niskiej liczbie punktów POI i cenach rzędu 10 000 – 15 000 PLN, natomiast spadek linii trendu powyżej 150 punktów usługowych może sygnalizować nasycenie lub specyfikę bardzo gęstych centrów miast, gdzie hałas i brak prywatności zaczynają ograniczać dalszy wzrost stawek.
 
@@ -740,22 +801,22 @@ ggplot(melted_corr, aes(Var1, Var2, fill = value)) +
   coord_fixed()
 ```
 
-<div style="text-align: justify;">
+<div class="info-box">
 
 Macierz korelacji Pearsona wskazuje na zróżnicowany wpływ poszczególnych zmiennych na cenę za m², przy czym najsilniejszym dodatnim czynnikiem powiązanym z wartością jednostkową nieruchomości jest liczba punktów usługowych (POI) w zasięgu, co potwierdza wysoką rynkową wycenę infrastruktury miejskiej. Co ciekawe, metraż oraz liczba pokoi wykazują słabą korelację ujemną z ceną za m², co sugeruje, że wraz ze wzrostem całkowitej powierzchni mieszkania, stawka za pojedynczy metr kwadratowy ma tendencję do lekkiego spadku. Jednocześnie obserwujemy silne, naturalne współzależności między metrażem a liczbą pokoi (0.82) oraz istotną korelację ujemną między dystansem do centrum a liczbą punktów POI (-0.45), co dowodzi, że im dalej od serca miasta, tym uboższa staje się oferta usługowa, co pośrednio rzutuje na finalną wycenę lokalu.
 
 </div>
 
 ```{r Podstawowe statystyki opisowe w podziale na miasta, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
-# 1. Instalacja i ładowanie niezbędnych bibliotek
+
 if (!require("e1071")) install.packages("e1071")
-if (!require("DT")) install.packages("DT") # Pakiet do interaktywnych tabel
+if (!require("DT")) install.packages("DT")
 library(e1071)
 library(dplyr)
 library(tidyr)
 library(DT)
 
-# 2. Obliczanie statystyk (identycznie jak wcześniej)
+
 tabela_stylizowana <- apartments_final %>%
   group_by(city) %>%
   summarise(
@@ -778,17 +839,18 @@ tabela_stylizowana <- apartments_final %>%
   pivot_wider(names_from = city, values_from = Wartość) %>%
   mutate(across(where(is.numeric), ~ round(., 2)))
 
-# 3. Wyświetlenie tabeli z kolorowaniem co drugiego wiersza
-# 'stripe' odpowiada za paski, 'cell-border' za obramowanie komórek
-datatable(tabela_stylizowana, 
+
+datatable(tabela_stylizowana,
+          extensions = 'FixedColumns', 
           options = list(
-            pageLength = 15,    # Ile wierszy na start
-            scrollX = TRUE,     # Przewijanie w poziomie dla wielu miast
-            dom = 't'           # Wyświetla tylko tabelę (bez zbędnych filtrów DT)
+            pageLength = 15,
+            scrollX = TRUE,      
+            dom = 't',
+            fixedColumns = list(leftColumns = 1) # <--- KROK 2: Przypinamy 1. kolumnę
           ),
-          class = 'cell-border stripe', 
+          class = 'cell-border stripe',
           rownames = FALSE,
-          caption = 'Porównanie Statystyk Cenowych Miast (Zebra Stripes)')
+          caption = 'Porównanie Statystyk Cenowych Miast (Przewiń w prawo ->)')
 ```
 
 ```{r Statystyki opisowe w relacji, type a cena za metr kwadratowy, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
@@ -844,5 +906,92 @@ datatable(tabela_polskie_nazwy,
           class = 'cell-border stripe', 
           rownames = FALSE,
           caption = 'Statystyki opisowe ceny za m² w zależności od typu zabudowy')
+
 ```
+## 3.2 Analiza różnic cenowych między Warszawą a Gdańskiem
+<div class="info-box">
+W niniejszym podrozdziale zestawiono dwa duże rynki w Polsce: **stołeczną Warszawę**, będącą centrum biznesowym, oraz **Gdańsk**, pełniący rolę kluczowego ośrodka turystycznego i portowego. Bezpośrednia analiza porównawcza pozwala oszacować "premię stołeczną" oraz zweryfikować, w jakim stopniu segmenty cenowe obu aglomeracji się pokrywają. Zbadanie różnic w rozkładach cen jest kluczowe dla oceny, czy gdański rynek premium stanowi cenową alternatywę dla standardowych inwestycji w stolicy.
+</div>
+```{r warszawa_vs_gdansk, echo=FALSE, message=FALSE, warning=FALSE, fig.height=6, fig.width=12}
+apartments_final %>%
+  filter(city %in% c("warszawa", "gdansk")) %>%
+  filter(price < 2500000) %>% # Ocinamy ekstremalne ogony dla czytelności
+  ggplot(aes(x = price, fill = city)) +
+  geom_density(alpha = 0.6, color = NA) +
+  scale_x_continuous(labels = scales::label_number(suffix = " PLN", scale = 1e-6, accuracy = 0.1, big.mark = ",")) +
+  scale_fill_manual(values = c("gdansk" = "#2980b9", "warszawa" = "#c0392b")) +
+  labs(
+    title = "Warszawa vs Gdańsk",
+    subtitle = "Rozkład gęstości cen ofertowych (oś X w mln PLN)",
+    x = "Cena całkowita (mln PLN)",
+    y = "Gęstość rozkładu",
+    fill = "Miasto"
+  ) +
+  theme_minimal(base_family = "sans") +
+  theme(
+    legend.position = "top",
+    plot.title = element_text(face = "bold", size = 14, color = "#2c3e50")
+  )
+```
+<div class="info-box">
+Analiza wizualna ujawnia fundamentalne różnice w strukturze obu rynków. Gdańsk (kolor niebieski) charakteryzuje się rozkładem leptokurtycznym (smukłym) – oznacza to wysoką koncentrację ofert w wąskim przedziale cenowym (ok. 600-700 tys. PLN). Rynek ten jest bardziej jednorodny i przewidywalny dla inwestora.
+
+Z kolei Warszawa (kolor czerwony) prezentuje rozkład spłaszczony z wyraźnym przesunięciem w stronę wyższych wartości (mediana ok. 850 tys. PLN). Kluczową obserwacją jest tzw. "gruby ogon" (fat tail) po prawej stronie wykresu. Wskazuje on na znaczący udział segmentu luksusowego w stolicy – oferty powyżej 1,5 mln PLN stanowią tu istotną część rynku, podczas gdy w Gdańsku są zjawiskiem marginalnym. Stołeczny rynek cechuje się więc znacznie większą dyspersją (zróżnicowaniem) cenowym
+</div>
+```{r Wykres_odleglosci_WWA_GDA, echo=FALSE, message=FALSE, warning=FALSE, fig.height=6, fig.width=12}
+wykres_odleglosci <- apartments_final %>%
+  mutate(price_per_sqm = price / squareMeters) %>%
+  
+  # --- TUTAJ JEST ZMIANA ---
+  # Zostawiamy tylko te dwa miasta:
+  filter(city %in% c("Warszawa", "Gdańsk")) %>%
+  
+  # Wywalamy błędy cenowe (outliery)
+  filter(price_per_sqm < 60000) %>%
+  
+  # Dodalem 'color = city', zeby sie roznily kolorami
+  ggplot(aes(x = centreDistance, y = price_per_sqm, color = city)) +
+  
+  # Punkty troche mniejsze i bardziej przezroczyste, zeby bylo widac zageszczenie
+  geom_point(alpha = 0.3, size = 1.2) +
+  
+  # Linia trendu
+  geom_smooth(method = "gam", color = "black", se = FALSE, size = 1) + 
+  
+  # Podział na dwa panele obok siebie
+  facet_wrap(~city, scales = "free") +
+  
+  # Kolorki (Warszawa na czerwono, Gdansk na niebiesko - klasyk)
+  scale_color_manual(values = c("Gdańsk" = "#2980b9", "Warszawa" = "#c0392b")) +
+  
+  labs(
+    title = "Czy im dalej od centrum, tym taniej?",
+    subtitle = "Porównanie trendów: Gdańsk vs Warszawa",
+    x = "Odległość od centrum (km)",
+    y = "Cena za m² (PLN)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none", # Legenda niepotrzebna, bo mamy podpisy nad wykresami
+    strip.text = element_text(size = 14, face = "bold") # Wieksze nazwy miast
+  )
+
+wykres_odleglosci
+```
+<div class="info-box">
+
+</div>
+
+<div class="info-box">
+</div>
+
+<div class="info-box">
+</div>
+
+
+
+
+
+
+
 
