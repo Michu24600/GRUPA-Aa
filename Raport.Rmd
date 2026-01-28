@@ -98,35 +98,20 @@ library(bslib)
 ```
 
 ```{r biblioteki, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8,fig.width=16}
-if(!require("dplyr")) install.packages("dplyr")
 library(dplyr)
-if(!require("naniar")) install.packages("naniar")
 library(naniar)
-if(!require("VIM")) install.packages("VIM")
 library(VIM)
-if(!require("tidyr")) install.packages("tidyr")
 library(tidyr)
-if(!require("randomForest")) install.packages("randomForest")
 library(randomForest)
-if (!require("validate")) {install.packages("validate")}
 library(validate)
-if (!require("leaflet")) {install.packages("leaflet")}
 library(leaflet)
-if (!require("scales")) {install.packages("scales")}
 library(scales)
-if (!require("ggplot2")) {install.packages("ggplot2")}
 library(ggplot2)
-if (!require("hexbin")) {install.packages("hexbin")}
 library(hexbin)
-if (!require("gganimate")) {install.packages("gganimate")}
 library(gganimate)
-if (!require("gifski")) {install.packages("gifski")}
 library(gifski) 
-if (!requireNamespace("ggmap", quietly = TRUE)) { install.packages("ggmap")} 
 library(ggmap)
-if (!requireNamespace("shiny", quietly = TRUE)) { install.packages("shiny")}
 library(shiny)
-if (!requireNamespace("shinythemes", quietly = TRUE)) {install.packages("shinythemes")}
 library(shinythemes)
 ```
 
@@ -806,7 +791,54 @@ ggplot(melted_corr, aes(Var1, Var2, fill = value)) +
 Macierz korelacji Pearsona wskazuje na zróżnicowany wpływ poszczególnych zmiennych na cenę za m², przy czym najsilniejszym dodatnim czynnikiem powiązanym z wartością jednostkową nieruchomości jest liczba punktów usługowych (POI) w zasięgu, co potwierdza wysoką rynkową wycenę infrastruktury miejskiej. Co ciekawe, metraż oraz liczba pokoi wykazują słabą korelację ujemną z ceną za m², co sugeruje, że wraz ze wzrostem całkowitej powierzchni mieszkania, stawka za pojedynczy metr kwadratowy ma tendencję do lekkiego spadku. Jednocześnie obserwujemy silne, naturalne współzależności między metrażem a liczbą pokoi (0.82) oraz istotną korelację ujemną między dystansem do centrum a liczbą punktów POI (-0.45), co dowodzi, że im dalej od serca miasta, tym uboższa staje się oferta usługowa, co pośrednio rzutuje na finalną wycenę lokalu.
 
 </div>
+```{r Interaktywny_Dashboard_RPubs_Clean, echo=FALSE, message=FALSE, warning=FALSE}
 
+library(crosstalk)
+library(plotly)
+library(dplyr)
+library(htmltools)
+
+
+dane_do_widgetu <- apartments_final %>%
+  select(city, price, squareMeters, buildYear, centreDistance, hasElevator) %>%
+  mutate(hasElevator = ifelse(hasElevator == "yes", "Tak", "Nie"))
+
+sd <- SharedData$new(dane_do_widgetu)
+
+
+bscols(
+  widths = c(3, 9), # Lewa kolumna (3), Prawa kolumna (9)
+  
+ 
+  list(
+    h4("🎛️ Filtry"),
+    
+    # Suwak dystansu
+    filter_slider("dist", "Odległość od centrum (km)", sd, ~centreDistance, step = 0.5, width = "100%"),
+    
+    # Suwak metrażu
+    filter_slider("sqm", "Metraż (m²)", sd, ~squareMeters, step = 1, width = "100%"),
+    
+    # Checkbox windy
+    filter_checkbox("elevator", "Winda", sd, ~hasElevator)
+  ), 
+ 
+  
+ 
+  list(
+    plot_ly(sd, x = ~price, type = "histogram", marker = list(color = "#2c3e50")) %>%
+      layout(
+        title = "Rozkład cen w wybranym segmencie",
+        xaxis = list(title = "Cena (PLN)"),
+        yaxis = list(title = "Liczba ofert"),
+        bargap = 0.1
+      )
+  )
+)
+```
+<div class="info-box">
+Powyższy moduł umożliwia dynamiczną segmentację rynku. Manipulując suwakami, można zaobserwować zjawisko elastyczności cenowej: przy zmniejszaniu odległości od centrum (< 3 km), histogram wyraźnie przesuwa się w prawo i spłaszcza, co potwierdza występowanie znacznej premii lokalizacyjnej oraz większe rozwarstwienie cen w prestiżowych dzielnicach.
+</div>
 ```{r Podstawowe statystyki opisowe w podziale na miasta, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
 
 if (!require("e1071")) install.packages("e1071")
@@ -852,6 +884,9 @@ datatable(tabela_stylizowana,
           rownames = FALSE,
           caption = 'Porównanie Statystyk Cenowych Miast (Przewiń w prawo ->)')
 ```
+<div class="info-box">
+
+</div>
 
 ```{r Statystyki opisowe w relacji, type a cena za metr kwadratowy, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
 # 1. Instalacja i ładowanie niezbędnych bibliotek
@@ -908,6 +943,10 @@ datatable(tabela_polskie_nazwy,
           caption = 'Statystyki opisowe ceny za m² w zależności od typu zabudowy')
 
 ```
+
+<div class="info-box">
+
+</div>
 ## 3.2 Analiza różnic cenowych między Warszawą a Gdańskiem
 <div class="info-box">
 W niniejszym podrozdziale zestawiono dwa duże rynki w Polsce: **stołeczną Warszawę**, będącą centrum biznesowym, oraz **Gdańsk**, pełniący rolę kluczowego ośrodka turystycznego i portowego. Bezpośrednia analiza porównawcza pozwala oszacować "premię stołeczną" oraz zweryfikować, w jakim stopniu segmenty cenowe obu aglomeracji się pokrywają. Zbadanie różnic w rozkładach cen jest kluczowe dla oceny, czy gdański rynek premium stanowi cenową alternatywę dla standardowych inwestycji w stolicy.
@@ -944,7 +983,7 @@ wykres_odleglosci <- apartments_final %>%
   
   # --- TUTAJ JEST ZMIANA ---
   # Zostawiamy tylko te dwa miasta:
-  filter(city %in% c("Warszawa", "Gdańsk")) %>%
+  filter(city %in% c("warszawa", "gdansk")) %>%
   
   # Wywalamy błędy cenowe (outliery)
   filter(price_per_sqm < 60000) %>%
@@ -962,7 +1001,7 @@ wykres_odleglosci <- apartments_final %>%
   facet_wrap(~city, scales = "free") +
   
   # Kolorki (Warszawa na czerwono, Gdansk na niebiesko - klasyk)
-  scale_color_manual(values = c("Gdańsk" = "#2980b9", "Warszawa" = "#c0392b")) +
+  scale_color_manual(values = c("ddansk" = "#2980b9", "warszawa" = "#c0392b")) +
   
   labs(
     title = "Czy im dalej od centrum, tym taniej?",
@@ -979,15 +1018,229 @@ wykres_odleglosci <- apartments_final %>%
 wykres_odleglosci
 ```
 <div class="info-box">
+Interpretacja trendów lokalizacyjnych:
 
+Zestawienie ujawnia fundamentalną różnicę w strukturze przestrzennej obu aglomeracji:
+
+Warszawa (Model Monocentryczny): Wykres po prawej stronie prezentuje klasyczną, ujemną korelację liniową. Najwyższe ceny (>25 tys. PLN/m²) koncentrują się w ścisłym centrum (0-2 km). Wraz ze wzrostem dystansu, cena spada w sposób niemal jednostajny. Jest to podręcznikowy przykład "renty lokalizacyjnej" – im bliżej Pałacu Kultury i Nauki, tym drożej.
+
+Gdańsk (Model Pasmowy / Policentryczny): Wykres po lewej jest znacznie bardziej złożony i przypomina kształtem literę "W".
+
+0-2 km (Stare Miasto): Wysokie ceny wynikają z walorów turystycznych i historycznych (najem krótkoterminowy).
+
+3-4 km (Lokalne Minimum): Spadek cen w dzielnicach przejściowych (np. Siedlce, Chełm), które są blisko centrum historycznego, ale nie posiadają jego prestiżu.
+
+5-9 km (Drugi Szczyt Cenowy): Krzywa ponownie rośnie. Jest to efekt unikalnej struktury "Centralnego Pasma Usługowego" (Wrzeszcz, Oliwa – będące faktycznym centrum biznesowym aglomeracji) oraz Pasa Nadmorskiego (Przymorze, Żabianka, Jelitkowo). W Gdańsku "centrum" nie jest punktem, lecz osią komunikacyjną biegnącą wzdłuż linii SKM, co sprawia, że lokale położone nawet 8-9 km od historycznego Śródmieścia osiągają wyceny zbliżone do tych ze starówki.
 </div>
 
+
+
+```{r Mapa_Hex_Patchwork, echo=FALSE, message=FALSE, warning=FALSE, fig.height=7, fig.width=14, fig.align="center"}
+# Instalujemy/ładujemy bibliotekę do łączenia wykresów
+if (!require("patchwork")) install.packages("patchwork")
+library(patchwork)
+library(ggplot2)
+library(dplyr)
+library(hexbin)
+library(viridis)
+library(osmdata)
+library(sf)
+
+# --- 1. PRZYGOTOWANIE DANYCH ---
+static_data <- apartments_final %>%
+  mutate(city_norm = tolower(city)) %>%
+  filter(city_norm %in% c("gdansk", "gdańsk", "warszawa")) %>%
+  mutate(city = if_else(grepl("gdansk|gdańsk", city_norm), "Gdańsk", "Warszawa")) %>%
+  mutate(buildYear = as.numeric(as.character(buildYear))) %>%
+  filter(!is.na(buildYear), buildYear >= 1900, buildYear <= 2026) %>%
+  filter(!is.na(latitude), !is.na(longitude))
+
+# --- 2. POBIERANIE GRANIC ---
+pobierz_granice <- function(miasto_osm) {
+  tryCatch({
+    granica <- opq(bbox = miasto_osm, timeout = 60) %>% 
+      add_osm_feature(key = "admin_level", value = "8") %>% 
+      osmdata_sf()
+    granica$osm_multipolygons %>% filter(name == miasto_osm)
+  }, error = function(e) return(NULL))
+}
+
+granica_gda <- NULL
+granica_wwa <- NULL
+try({
+  granica_gda <- pobierz_granice("Gdańsk")
+  granica_wwa <- pobierz_granice("Warszawa")
+}, silent = TRUE)
+
+# --- 3. FUNKCJA RYSUJĄCA JEDNO MIASTO ---
+rysuj_miasto <- function(dane, granice, nazwa_miasta) {
+  
+  # Filtrujemy dane dla konkretnego miasta
+  dane_miasta <- dane %>% filter(city == nazwa_miasta)
+  
+  ggplot() +
+    # Tło (czarne)
+    geom_rect(aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf), fill = "#101010") +
+    
+    # Granice (jeśli są)
+    {if (!is.null(granice)) geom_sf(data = granice, fill = "#1a1a1a", color = "#555555", size = 0.8)} +
+    
+    # Hexbiny
+    stat_summary_hex(
+      data = dane_miasta,
+      aes(x = longitude, y = latitude, z = buildYear),
+      fun = median, 
+      bins = 40, # Mniej binów bo wykresy będą mniejsze
+      color = "black", 
+      size = 0.1
+    ) +
+    
+    # Skala kolorów
+    scale_fill_viridis_c(
+      option = "magma", 
+      limits = c(1950, 2024), # Sztywna skala, żeby kolory znaczyły to samo na obu mapach!
+      oob = scales::squish,   # Jak coś jest starsze niż 1950, traktuj jak 1950
+      name = "Rok budowy"
+    ) +
+    
+    labs(title = nazwa_miasta) +
+    theme_void() +
+    theme(
+      plot.background = element_rect(fill = "#101010", color = NA),
+      panel.background = element_rect(fill = "#101010", color = NA),
+      text = element_text(color = "white"),
+      plot.title = element_text(size = 22, face = "bold", hjust = 0.5, margin = margin(b = 10)),
+      legend.position = "none" # Legendę dodamy osobno na końcu
+    )
+}
+
+# --- 4. TWORZENIE DWÓCH WYKRESÓW ---
+p_gda <- rysuj_miasto(static_data, granica_gda, "Gdańsk")
+p_wwa <- rysuj_miasto(static_data, granica_wwa, "Warszawa")
+
+# --- 5. ŁĄCZENIE (MAGIA PATCHWORK) ---
+# Składamy dwa wykresy obok siebie i dodajemy wspólną legendę
+final_plot <- (p_gda + p_wwa) +
+  plot_layout(guides = "collect") & # Wspólna legenda
+  theme(
+    legend.position = "bottom",
+    legend.background = element_rect(fill = "#101010"),
+    legend.text = element_text(color = "white"),
+    legend.title = element_text(color = "white"),
+    legend.key.width = unit(2, "cm")
+  )
+
+# Dodajemy nagłówek do całości
+final_plot + plot_annotation(
+  title = "Gdzie buduje się nowe?",
+  subtitle = "Analiza przestrzenna wieku tkanki miejskiej (Mediana roku budowy)",
+  caption = "Szary kontur = granice miasta | Kolorowe punkty = oferty sprzedaży",
+  theme = theme(
+    plot.background = element_rect(fill = "#101010", color = NA),
+    plot.title = element_text(size = 26, face = "bold", color = "white", hjust = 0.5),
+    plot.subtitle = element_text(size = 16, color = "#cccccc", hjust = 0.5),
+    plot.caption = element_text(size = 12, color = "#888888")
+  )
+)
+```
+<div class="info-box">
+Analiza Przestrzenna Struktury Wieku Tkanki Miejskiej 
+
+Powyższa wizualizacja wykorzystuje agregację heksagonalną do zbadania rozkładu przestrzennego inwestycji mieszkaniowych. Zastosowanie mediany roku budowy jako zmiennej koloryzującej pozwala na zniwelowanie wpływu pojedynczych nowych inwestycji w starszych dzielnicach (tzw. plomby) i uwypuklenie dominującego charakteru zabudowy w danym rejonie.
+
+Analiza ujawnia dwa odmienne modele rozwoju aglomeracji:
+
+Warszawa (Model Monocentryczny – "Efekt Obwarzanka"):
+
+Rdzeń (Core): Centrum miasta oraz dzielnice ościenne (Mokotów, Ochota, Żoliborz) charakteryzują się dominacją barw ciemnych (fiolet), co odpowiada starszej tkance historycznej oraz zabudowie z okresu PRL (wielka płyta).
+
+Peryferia: Obserwujemy wyraźny, jasny pierścień okalający miasto. Jest to dowód na silną suburbanizację i zjawisko urban sprawl. Najnowsze inwestycje (jasnożółte klastry, mediana > 2015 r.) są wypychane na obrzeża (Białołęka, Ursus, Wilanów), gdzie dostępność gruntów jest większa, a ich ceny niższe.
+
+Gdańsk (Model Pasmowy / Linearny):
+
+Struktura wieku zabudowy jest skorelowana z główną osią komunikacyjną (SKM / Al. Grunwaldzka). Starsza zabudowa (fiolet) ciągnie się wzdłuż tego pasma oraz w historycznym Śródmieściu.
+
+Ekspansja Południowa: W przeciwieństwie do warszawskiego "pierścienia", w Gdańsku widzimy silną koncentrację nowych inwestycji (jasne plamy) w jednym, konkretnym kierunku – na południe od obwodnicy (Gdańsk Południe, Jasień), tworząc rozległe, nowoczesne dzielnice sypialniane.
+
+Wniosek: Mapa potwierdza, że w Warszawie "nowe" oznacza "daleko od centrum", podczas gdy w Gdańsku nowe inwestycje intensywnie wypełniają luki w tkance miejskiej (pas nadmorski) oraz tworzą nowe centrum sypialniane na południu.
+</div>
+```{r Statystyki_WWA_GDA_Pokoje, echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(DT)
+library(e1071)
+tabela_pokoje <- apartments_final %>%
+  filter(city %in% c("warszawa", "gdansk")) %>%
+  filter(rooms >= 1 & rooms <= 4) %>% 
+  mutate(Kategoria = paste0(city, " (", rooms, " p.)")) %>% 
+  group_by(Kategoria) %>%
+  summarise(
+    Min = min(price, na.rm = TRUE),
+    `Kwartyl dolny` = quantile(price, 0.25, na.rm = TRUE),
+    Mediana = median(price, na.rm = TRUE),
+    `Kwartyl górny` = quantile(price, 0.75, na.rm = TRUE),
+    Max = max(price, na.rm = TRUE),
+    Średnia = mean(price, na.rm = TRUE),
+    `Odch. std.` = sd(price, na.rm = TRUE),
+    IQR = IQR(price, na.rm = TRUE),
+    `Skośność` = skewness(price, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  pivot_longer(cols = -Kategoria, names_to = "Statystyka", values_to = "Wartość") %>%
+  pivot_wider(names_from = Kategoria, values_from = Wartość) %>%
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+
+kolumny_dane <- sort(names(tabela_pokoje)[-1])
+tabela_pokoje <- tabela_pokoje %>% select("Statystyka", all_of(kolumny_dane))
+
+
+cols_gdansk <- grep("gdansk", names(tabela_pokoje), value = TRUE)
+cols_wawa   <- grep("warszawa", names(tabela_pokoje), value = TRUE)
+
+
+datatable(tabela_pokoje,
+          extensions = 'FixedColumns', 
+          options = list(
+            pageLength = 15,
+            scrollX = TRUE,      
+            dom = 't',
+            fixedColumns = list(leftColumns = 1) 
+          ),
+          class = 'cell-border hover',
+          rownames = FALSE,
+          caption = 'Szczegółowa analiza cen: Podział na pokoje (Gdańsk vs Warszawa)') %>%
+  
+
+  formatStyle(
+    columns = cols_gdansk,
+    backgroundColor = styleInterval(c(0), c('#eaf2f8', '#d4e6f1')), 
+    color = '#154360',
+    fontWeight = 'bold'
+  ) %>%
+  
+
+  formatStyle(
+    columns = cols_wawa,
+    backgroundColor = styleInterval(c(0), c('#fdedec', '#fadbd8')), 
+    color = '#78281f',
+    fontWeight = 'bold'
+  ) %>%
+  
+  
+  formatCurrency(
+    columns = names(tabela_pokoje)[-1], 
+    currency = "", 
+    interval = 3, 
+    mark = " ", 
+    digits = 0
+  )
+```
 <div class="info-box">
 </div>
+## 3.3 Testy statystyczne
 
-<div class="info-box">
-</div>
-
+# 4.Podsumowanie
 
 
 

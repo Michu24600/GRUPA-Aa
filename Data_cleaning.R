@@ -1208,3 +1208,4 @@ plt_3 <- ggbetweenstats(
 
 # 4. Wyświetlenie wykresu
 print(plt_3)
+
