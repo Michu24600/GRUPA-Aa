@@ -17,21 +17,43 @@ output:
       collapsed: true
     smooth_scroll: true
     number_sections: false
-    highlight: pygments # Ładniejsze kolorowanie kodu
+    highlight: pygments 
+  
 ---
 
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-bs-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-bs-theme', newTheme);
+    document.getElementById('theme-icon').innerHTML = newTheme === 'dark' ? '☀️' : '🌙';
+  }
+</script>
+
+<button onclick="toggleTheme()" style="
+  position: fixed; top: 20px; right: 20px; z-index: 9999;
+  background: var(--bs-primary); color: white; border: none;
+  border-radius: 50%; width: 50px; height: 50px; font-size: 24px;
+  cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+" title="Zmień motyw">
+  <span id="theme-icon">🌙</span>
+</button>
+
 <style>
-/* Główny kontener raportu */
+/* Główny kontener - używamy zmiennych var(--bs-...), żeby reagował na zmianę motywu */
 body {
-  background-color: #f8f9fa; /* Delikatne szare tło, by białe wykresy "wychodziły" do przodu */
-  color: #333333;
+  background-color: var(--bs-tertiary-bg); /* Szare w jasnym, ciemne w ciemnym */
+  color: var(--bs-body-color);
   line-height: 1.7;
+  transition: all 0.3s ease;
 }
 
 /* Karta z treścią */
 .main-container {
   max-width: 1100px !important;
-  background-color: white;
+  background-color: var(--bs-body-bg); /* Białe w jasnym, czarne w ciemnym */
   padding: 40px !important;
   box-shadow: 0 0 20px rgba(0,0,0,0.05);
   margin-top: 30px;
@@ -40,15 +62,15 @@ body {
 
 /* Nagłówki */
 h1 {
-  color: #2C3E50;
+  color: var(--bs-primary); /* Kolor główny z motywu */
   font-weight: 800;
-  border-left: 6px solid #2C3E50;
+  border-left: 6px solid var(--bs-primary);
   padding-left: 15px;
   margin-top: 1.5em;
 }
 
 h2 {
-  color: #34495E;
+  color: var(--bs-emphasis-color); /* Kontrastowy tekst */
   font-weight: 700;
   margin-top: 1.2em;
   text-transform: uppercase;
@@ -56,42 +78,40 @@ h2 {
   font-size: 1.2em;
 }
 
-/* Stylowanie tabel DT */
-.dataTables_wrapper {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.9em;
-}
-
 /* Pływające menu (TOC) */
 #TOC {
   border: none;
-  background-color: rgba(255,255,255,0.8);
-  backdrop-filter: blur(5px);
+  background-color: var(--bs-body-bg); /* Dopasowane tło */
+  opacity: 0.95;
   border-radius: 10px;
   padding: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 /* Wykresy i obrazki */
 img, .plotly, .html-widget {
   border-radius: 12px;
-  transition: transform .3s; /* Efekt po najechaniu */
+  transition: transform .3s;
 }
-
 img:hover {
   transform: scale(1.01);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.12);
 }
 
-/* Wyróżnione bloki tekstu (zastąp divy tymi klasami) */
+/* Szare pudełka (Info-box) */
 .info-box {
   padding: 20px;
-  background-color: #e9ecef;
+  background-color: var(--bs-secondary-bg); /* Szare tło systemowe */
+  color: var(--bs-body-color);
   border-radius: 10px;
-  border-left: 5px solid #2C3E50;
+  border-left: 5px solid var(--bs-primary);
   margin: 20px 0;
 }
-</style>
 
+/* Tabela */
+.dataTables_wrapper {
+  color: var(--bs-body-color);
+}
+</style>
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(bslib)
@@ -117,7 +137,7 @@ library(shinythemes)
 
 # 1. Wstęp i Cel Projektu
 <div class="info-box">
-**🎯 Cel Analizy**: Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada *dwuetapową weryfikację hipotez*: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
+**🎯 Cel Analizy**: Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada dwuetapową weryfikację hipotez: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
 </div>
 ## 1.1 O Danych
 <div class="info-box">
@@ -885,7 +905,9 @@ datatable(tabela_stylizowana,
           caption = 'Porównanie Statystyk Cenowych Miast (Przewiń w prawo ->)')
 ```
 <div class="info-box">
+Analiza przedstawionych statystyk opisowych wskazuje na znaczące zróżnicowanie rynku w badanych miastach, gdzie Warszawa, Gdańsk oraz Gdynia wyraźnie dominują pod względem najwyższych średnich wartości. Najniższe wartości średnie oraz mediany odnotowano natomiast w Radomiu i Częstochowie, co potwierdza dużą rozpiętość cenową lub wartościową pomiędzy poszczególnymi regionami. W większości analizowanych lokalizacji występuje dodatnia skośność, co oznacza przewagę wyników poniżej średniej i występowanie wartości skrajnie wysokich, szczególnie widocznych w Warszawie, gdzie maksimum sięga poziomu trzech milionów.
 
+Pod kątem stabilności danych, najwyższy poziom rozproszenia mierzony odchyleniem standardowym oraz współczynnikiem zmienności wykazują rynki w Gdyni i Gdańsku, co sugeruje mniejszą przewidywalność cen w tych lokalizacjach w porównaniu do bardziej stabilnego Radomia czy Lublina. Rozkład wartości w większości miast charakteryzuje się również dodatnią kurtozą, wskazującą na relatywnie wysoki stopień koncentracji wyników wokół średniej, przy jednoczesnym występowaniu szerokiego rozstępu międzykwartylowego (IQR) w największych aglomeracjach. Takie zestawienie danych sugeruje, że rynki w dużych miastach wojewódzkich są nie tylko najdroższe, ale również najbardziej wewnętrznie zróżnicowane pod względem struktury oferowanych wartości.
 </div>
 
 ```{r Statystyki opisowe w relacji, type a cena za metr kwadratowy, echo=FALSE, fig.height=16, fig.width=16, message=FALSE, warning=FALSE}
@@ -945,7 +967,7 @@ datatable(tabela_polskie_nazwy,
 ```
 
 <div class="info-box">
-
+Analiza danych wykazuje, że segment apartamentowców charakteryzuje się najwyższym prestiżem cenowym, osiągając średnią na poziomie 18 261,18 zł za metr kwadratowy oraz medianę wynoszącą 18 188,43. W porównaniu do bloków i kamienic, apartamentowce cechują się największą stabilnością cenową, co potwierdza najniższy współczynnik zmienności (odchylenie standardowe w % wynosi 0,27) oraz niemal symetryczny rozkład wartości. Z kolei kamienice, mimo niższej średniej ceny (14 533,8), wykazują największe zróżnicowanie wewnętrzne, o czym świadczy najwyższe odchylenie standardowe oraz najwyższy rozstęp międzykwartylowy (IQR) wynoszący 9819,32. Wszystkie badane kategorie posiadają dodatnią skośność, co wskazuje na przewagę ofert o cenach niższych niż średnia, przy czym najsilniejszą tendencję w tym kierunku obserwujemy w przypadku tradycyjnych bloków.
 </div>
 ## 3.2 Analiza różnic cenowych między Warszawą a Gdańskiem
 <div class="info-box">
@@ -973,9 +995,9 @@ apartments_final %>%
   )
 ```
 <div class="info-box">
-Analiza wizualna ujawnia fundamentalne różnice w strukturze obu rynków. Gdańsk (kolor niebieski) charakteryzuje się rozkładem leptokurtycznym (smukłym) – oznacza to wysoką koncentrację ofert w wąskim przedziale cenowym (ok. 600-700 tys. PLN). Rynek ten jest bardziej jednorodny i przewidywalny dla inwestora.
+Analiza wizualna ujawnia zasadnicze różnice w strukturze obu rynków. Gdańsk charakteryzuje się rozkładem o wysokiej smukłości, co oznacza dużą koncentrację ofert w wąskim przedziale cenowym między sześćset a siedemset tysięcy złotych. Rynek ten jest przez to bardziej jednorodny i przewidywalny z punktu widzenia inwestora.
 
-Z kolei Warszawa (kolor czerwony) prezentuje rozkład spłaszczony z wyraźnym przesunięciem w stronę wyższych wartości (mediana ok. 850 tys. PLN). Kluczową obserwacją jest tzw. "gruby ogon" (fat tail) po prawej stronie wykresu. Wskazuje on na znaczący udział segmentu luksusowego w stolicy – oferty powyżej 1,5 mln PLN stanowią tu istotną część rynku, podczas gdy w Gdańsku są zjawiskiem marginalnym. Stołeczny rynek cechuje się więc znacznie większą dyspersją (zróżnicowaniem) cenowym
+W przeciwieństwie do niego Warszawa prezentuje rozkład spłaszczony z wyraźnym przesunięciem w stronę wyższych wartości, gdzie mediana oscyluje wokół ośmiuset pięćdziesięciu tysięcy złotych. Kluczową obserwacją w przypadku stolicy jest występowanie szerokiego zakresu wartości skrajnych po prawej stronie wykresu. Wskazuje to na znaczący udział segmentu luksusowego, w którym oferty przekraczające półtora miliona złotych stanowią istotną część rynku, podczas gdy w Gdańsku są one zjawiskiem marginalnym. Rynek stołeczny cechuje się zatem znacznie większym zróżnicowaniem cenowym.
 </div>
 ```{r Wykres_odleglosci_WWA_GDA, echo=FALSE, message=FALSE, warning=FALSE, fig.height=6, fig.width=12}
 wykres_odleglosci <- apartments_final %>%
@@ -1018,19 +1040,11 @@ wykres_odleglosci <- apartments_final %>%
 wykres_odleglosci
 ```
 <div class="info-box">
-Interpretacja trendów lokalizacyjnych:
+Interpretacja trendów lokalizacyjnych ukazuje zasadnicze różnice w strukturze przestrzennej obu aglomeracji:
 
-Zestawienie ujawnia fundamentalną różnicę w strukturze przestrzennej obu aglomeracji:
+Warszawa reprezentuje model monocentryczny, w którym zależność cen od lokalizacji przybiera postać wyraźnej ujemnej korelacji liniowej. Najwyższe stawki, przekraczające dwadzieścia pięć tysięcy złotych za metr kwadratowy, skupiają się w ścisłym centrum miasta. Wraz z oddalaniem się od serca stolicy wartość nieruchomości spada w sposób niemal jednostajny, co stanowi klasyczny przykład renty lokalizacyjnej, gdzie odległość od centralnego punktu orientacyjnego jest głównym czynnikiem determinującym cenę.
 
-Warszawa (Model Monocentryczny): Wykres po prawej stronie prezentuje klasyczną, ujemną korelację liniową. Najwyższe ceny (>25 tys. PLN/m²) koncentrują się w ścisłym centrum (0-2 km). Wraz ze wzrostem dystansu, cena spada w sposób niemal jednostajny. Jest to podręcznikowy przykład "renty lokalizacyjnej" – im bliżej Pałacu Kultury i Nauki, tym drożej.
-
-Gdańsk (Model Pasmowy / Policentryczny): Wykres po lewej jest znacznie bardziej złożony i przypomina kształtem literę "W".
-
-0-2 km (Stare Miasto): Wysokie ceny wynikają z walorów turystycznych i historycznych (najem krótkoterminowy).
-
-3-4 km (Lokalne Minimum): Spadek cen w dzielnicach przejściowych (np. Siedlce, Chełm), które są blisko centrum historycznego, ale nie posiadają jego prestiżu.
-
-5-9 km (Drugi Szczyt Cenowy): Krzywa ponownie rośnie. Jest to efekt unikalnej struktury "Centralnego Pasma Usługowego" (Wrzeszcz, Oliwa – będące faktycznym centrum biznesowym aglomeracji) oraz Pasa Nadmorskiego (Przymorze, Żabianka, Jelitkowo). W Gdańsku "centrum" nie jest punktem, lecz osią komunikacyjną biegnącą wzdłuż linii SKM, co sprawia, że lokale położone nawet 8-9 km od historycznego Śródmieścia osiągają wyceny zbliżone do tych ze starówki.
+Gdańsk natomiast wpisuje się w model pasmowy i policentryczny, co sprawia, że wykres cen jest znacznie bardziej złożony. W promieniu dwóch kilometrów od historycznego Śródmieścia wysokie ceny są podyktowane walorami turystycznymi oraz rynkiem najmu krótkoterminowego. Następnie, w odległości trzech do czterech kilometrów, następuje lokalny spadek cen w dzielnicach o charakterze sypialnianym, które mimo bliskości starówki nie posiadają jej prestiżu. Kolejny wzrost stawek obserwuje się w przedziale od pięciu do dziewięciu kilometrów. Wynika to ze specyfiki Centralnego Pasma Usługowego, obejmującego biznesowe ośrodki w Oliwie i Wrzeszczu, oraz atrakcyjności pasa nadmorskiego. W rezultacie w Gdańsku centrum nie stanowi pojedynczego punktu, lecz oś komunikacyjną, co powoduje, że nieruchomości położone daleko od zabytkowego rdzenia miasta mogą osiągać wyceny porównywalne z ofertami w samym Śródmieściu.
 </div>
 
 
@@ -1144,25 +1158,11 @@ final_plot + plot_annotation(
 )
 ```
 <div class="info-box">
-Analiza Przestrzenna Struktury Wieku Tkanki Miejskiej 
+Analiza przestrzenna struktury wieku zabudowy wykorzystuje agregację heksagonalną, co pozwala na precyzyjne zbadanie rozkładu inwestycji mieszkaniowych. Przyjęcie mediany roku budowy jako głównego wskaźnika umożliwia pominięcie wpływu pojedynczych, współczesnych obiektów w starszych dzielnicach i skupienie się na dominującym charakterze architektonicznym danego rejonu.
 
-Powyższa wizualizacja wykorzystuje agregację heksagonalną do zbadania rozkładu przestrzennego inwestycji mieszkaniowych. Zastosowanie mediany roku budowy jako zmiennej koloryzującej pozwala na zniwelowanie wpływu pojedynczych nowych inwestycji w starszych dzielnicach (tzw. plomby) i uwypuklenie dominującego charakteru zabudowy w danym rejonie.
+Zestawienie to ukazuje dwa odmienne modele rozwoju aglomeracji. W Warszawie obserwujemy model monocentryczny, potocznie określany mianem efektu obwarzanka. Śródmieście oraz przyległe do niego dzielnice, takie jak Mokotów, Ochota czy Żoliborz, tworzą ciemniejszy rdzeń zdominowany przez tkankę historyczną oraz budownictwo z okresu PRL. Z kolei na obrzeżach miasta, w dzielnicach takich jak Białołęka, Ursus czy Wilanów, wyraźnie zarysowuje się jasny pierścień nowej zabudowy. Świadczy to o intensywnym procesie rozlewania się miasta i wypychaniu najnowszych inwestycji na peryferia, gdzie większa dostępność gruntów pozwala na zachowanie niższych cen.
 
-Analiza ujawnia dwa odmienne modele rozwoju aglomeracji:
-
-Warszawa (Model Monocentryczny – "Efekt Obwarzanka"):
-
-Rdzeń (Core): Centrum miasta oraz dzielnice ościenne (Mokotów, Ochota, Żoliborz) charakteryzują się dominacją barw ciemnych (fiolet), co odpowiada starszej tkance historycznej oraz zabudowie z okresu PRL (wielka płyta).
-
-Peryferia: Obserwujemy wyraźny, jasny pierścień okalający miasto. Jest to dowód na silną suburbanizację i zjawisko urban sprawl. Najnowsze inwestycje (jasnożółte klastry, mediana > 2015 r.) są wypychane na obrzeża (Białołęka, Ursus, Wilanów), gdzie dostępność gruntów jest większa, a ich ceny niższe.
-
-Gdańsk (Model Pasmowy / Linearny):
-
-Struktura wieku zabudowy jest skorelowana z główną osią komunikacyjną (SKM / Al. Grunwaldzka). Starsza zabudowa (fiolet) ciągnie się wzdłuż tego pasma oraz w historycznym Śródmieściu.
-
-Ekspansja Południowa: W przeciwieństwie do warszawskiego "pierścienia", w Gdańsku widzimy silną koncentrację nowych inwestycji (jasne plamy) w jednym, konkretnym kierunku – na południe od obwodnicy (Gdańsk Południe, Jasień), tworząc rozległe, nowoczesne dzielnice sypialniane.
-
-Wniosek: Mapa potwierdza, że w Warszawie "nowe" oznacza "daleko od centrum", podczas gdy w Gdańsku nowe inwestycje intensywnie wypełniają luki w tkance miejskiej (pas nadmorski) oraz tworzą nowe centrum sypialniane na południu.
+Gdańsk prezentuje odmienny, pasmowy model rozwoju, silnie skorelowany z główną osią komunikacyjną oraz linią kolejową. Starsza zabudowa koncentruje się wzdłuż tego ciągu oraz w historycznym Śródmieściu. Ekspansja nowych inwestycji nie ma tu charakteru pierścieniowego, lecz kieruje się przede wszystkim na południe, poza linię obwodnicy, tworząc nowoczesne dzielnice sypialniane w rejonie Jasienia i Gdańska Południe. Porównanie obu miast prowadzi do wniosku, że o ile w stolicy nowe budownictwo jest tożsame z dużą odległością od centrum, o tyle w Gdańsku inwestycje te albo intensywnie uzupełniają luki w pasie nadmorskim, albo tworzą skondensowany ośrodek mieszkaniowy na południowych krańcach aglomeracji.
 </div>
 ```{r Statystyki_WWA_GDA_Pokoje, echo=FALSE, message=FALSE, warning=FALSE}
 library(dplyr)
@@ -1237,14 +1237,138 @@ datatable(tabela_pokoje,
   )
 ```
 <div class="info-box">
+Przedstawione dane wskazują na systematyczny wzrost cen nieruchomości wraz z liczbą pokoi, przy czym Warszawa konsekwentnie pozostaje rynkiem droższym od Gdańska we wszystkich kategoriach. Różnice te pogłębiają się wraz z metrażem, co widać szczególnie w segmencie lokali czteropokojowych, gdzie mediana w stolicy jest o blisko 400 tys. zł wyższa niż w Gdańsku. W obu miastach występuje prawostronna asymetria rozkładu oraz rosnące rozproszenie cen w większych mieszkaniach, co sugeruje duży wpływ ofert luksusowych na średnie rynkowe, zwłaszcza w Warszawie, gdzie ceny maksymalne osiągają poziom 3 mln zł.
 </div>
 ## 3.3 Testy statystyczne
+```{r setup_stats, echo=FALSE, message=FALSE, warning=FALSE}
+echo=FALSE
+library(dplyr)
+library(rstatix)
+library(ggpubr)
+library(gplots)
+library(ggplot2)
+library(car)
+library(ggstatsplot)
+
+
+
+apartments_stat <- apartments_final %>%
+  filter(!is.na(price), !is.na(floor), !is.na(poiCount)) %>%
+  mutate(
+   
+    floor_group = case_when(
+      floor == 0 ~ "Parter",
+      floor >= 1 & floor <= 4 ~ "Niskie (1-4)",
+      floor >= 5 & floor <= 10 ~ "Średnie (5-10)",
+      floor > 10 ~ "Wysokie (11+)",
+      TRUE ~ "Inne"
+    ),
+ 
+    floor_group = factor(floor_group, levels = c("Parter", "Niskie (1-4)", "Średnie (5-10)", "Wysokie (11+)")),
+    
+    
+    poi_group = ntile(poiCount, 3), 
+    poi_label = factor(case_when(
+      poi_group == 1 ~ "Mała dostępność usług",
+      poi_group == 2 ~ "Średnia dostępność",
+      poi_group == 3 ~ "Duża dostępność usług"
+    ), levels = c("Mała dostępność usług", "Średnia dostępność", "Duża dostępność usług")),
+    
+    type = as.factor(type),
+    city = as.factor(city),
+    hasElevator = as.factor(hasElevator)
+  )
+levene_result <- leveneTest(price ~ type, data = apartments_stat)
+print(levene_result)
+
+ggbetweenstats(
+  data = apartments_stat,
+  x = type,
+  y = price,
+  type = "p",            
+  var.equal = FALSE,      
+  pairwise.display = "significant", 
+  title = "Czy typ budynku różnicuje cenę?",
+  xlab = "Rodzaj budynku",
+  ylab = "Cena ofertowa (PLN)",
+  messages = FALSE
+)
+```
+<div class="info-box">
+**Do sekcji 1 Typ budynku:**
+Przeprowadzony test ANOVA (Welcha) wykazał bardzo silną istotność statystyczną ($p < 0.001$). Odrzucamy hipotezę zerową – rodzaj budynku jest kluczowym czynnikiem różnicującym cenę.
+
+Ranking cenowy: 
+Najwyższe średnie ceny osiągają apartamentowce (apartmentBuilding) (śr. ~1.13 mln PLN). Są one zdecydowanie droższe od kamienic (tenement) (śr. ~909 tys. PLN) oraz bloków (blockOfFlats), które stanowią segment najtańszy (śr. ~713 tys. PLN).Wnioski: Testy post-hoc (Gamesa-Howella) potwierdzają, że różnice między każdą parą tych grup są istotne statystycznie. Typ budynku jest jednym z najsilniejszych predyktorów ceny w badanym zbiorze.
+</div>
+```{r setup_stats1, echo=FALSE, message=FALSE, warning=FALSE}
+echo=FALSE
+ggbetweenstats(
+  data = apartments_stat,
+  x = floor_group,
+  y = price,
+  type = "p",
+  var.equal = FALSE,
+  pairwise.display = "significant",
+  title = "Wpływ kondygnacji na cenę",
+  xlab = "Grupa pięter",
+  ylab = "Cena ofertowa (PLN)",
+  messages = FALSE
+)
+```
+<div class="info-box">
+**Do sekcji 2 Piętro:**
+Analiza wykazała istotne statystycznie różnice w cenach w zależności od kondygnacji ($p < 0.001$). Obserwujemy wyraźny trend rosnący:
+
+Premia za widok: Najdroższe są mieszkania na wysokich piętrach (11+) (śr. ~961 tys. PLN).Standard: Mieszkania na piętrach niskich (1-4) i średnich (5-10) osiągają niższe wyceny (odpowiednio ~815 tys. i ~855 tys. PLN).Wniosek: Rynek premiuje mieszkania położone wysoko (panoramiczne), traktując je jako towar bardziej luksusowy, podczas gdy niższe kondygnacje w wysokiej zabudowie są wyceniane niżej.
+</div>
+```{r setup_stats2, echo=FALSE, message=FALSE, warning=FALSE}
+echo=FALSE
+ggbetweenstats(
+  data = apartments_stat,
+  x = poi_label,
+  y = price,
+  type = "p",
+  var.equal = FALSE,
+  pairwise.display = "significant", 
+  title = "Dostępność punktów usługowych (POI) a cena",
+  xlab = "Nasycenie usługami (POI)",
+  ylab = "Cena ofertowa (PLN)",
+  messages = FALSE
+)
+```
+<div class="info-box">
+**Do sekcji 3 Dostępność usług / POI:**
+Istnieje silna zależność między nasyceniem okolicy usługami (POI) a ceną ofertową nieruchomości ($p < 0.001$).Efekt lokalizacji: 
+
+Mieszkania w strefach o dużej dostępności usług są średnio o ponad 140 tys. PLN droższe (śr. ~923 tys. PLN) niż te w strefach o średniej dostępności (~781 tys. PLN).Wniosek: Bliskość szkół, restauracji i sklepów jest silnie skorelowana z wyższą ceną, co potwierdza, że lokalizacja "wszystko pod ręką" jest wysoce pożądana przez kupujących.
+</div>
+```{r setup_stats3, echo=FALSE, message=FALSE, warning=FALSE}
+ggbetweenstats(
+  data = apartments_stat,
+  x = hasElevator,
+  y = price,
+  type = "p", 
+  var.equal = FALSE,
+  title = "Czy winda podnosi wartość mieszkania?",
+  xlab = "Czy jest winda?",
+  ylab = "Cena ofertowa (PLN)",
+  messages = FALSE
+)
+```
+<div class="info-box">
+**Do sekcji 4 Winda:**
+Test t-Studenta (z poprawką Welcha) wskazuje na gigantyczną różnicę w cenach ($p < 0.001$).
+
+Wartość udogodnienia: 
+
+Mieszkania w budynkach z windą są średnio o blisko 180 tys. PLN droższe (śr. ~914 tys. PLN) niż te bez windy (~736 tys. PLN).Kontekst: Należy pamiętać, że winda często koreluje z nowszym budownictwem (apartamentowce) lub wyższym standardem, podczas gdy brak windy jest typowy dla starszych bloków z wielkiej płyty (do 4 pięter) i kamienic, co dodatkowo pogłębia różnicę cenową.
+</div>
+
+
+
 
 # 4.Podsumowanie
-
-
-
-
 
 
 

@@ -1138,6 +1138,7 @@ datatable(tabela_polskie_nazwy,
 # -----------------------------------------------------------------------------
 
 # 1. Załadowanie niezbędnych bibliotek
+install.packages("ggstatsplot") # Jeśli nie masz jeszcze zainstalowane
 library(ggstatsplot)
 library(dplyr)
 
