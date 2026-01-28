@@ -39,47 +39,29 @@ Publikacja obejmuje kompletny proces analityczny: od czyszczenia danych i inżyn
 
 Zbiór danych zawiera oferty sprzedaży mieszkań z czerwca 2024 roku.
 **Źródło danych:** [https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv]
-
+---
 ## 📖 Słownik Zmiennych (Data Dictionary)
-<div class="info-box">
+
 Poniższa tabela przedstawia opis zmiennych dostępnych w analizowanym zbiorze danych:
-</div>
-```{r data_dictionary, echo=FALSE,message=FALSE,warning=FALSE}
-# Najpierw upewnij się, że masz pakiet: install.packages("kableExtra")
-library(kableExtra)
-library(dplyr)
 
-# Tworzymy dane ręcznie
-slownik <- tibble::tribble(
-  ~"Nazwa Zmiennej", ~"Opis", 
-  "id", "Unikalny identyfikator ogłoszenia", 
-  "city", "Miasto, w którym znajduje się nieruchomość", 
-  "price", "Cena ofertowa (PLN) ", 
-  "squareMeters", "Powierzchnia mieszkania w m²", 
-  "rooms", "Liczba pokoi", 
-  "floor / floorCount", "Piętro mieszkania / Liczba pięter", 
-  "buildYear", "Rok budowy budynku", 
-  "type", "Rodzaj zabudowy ", 
-  "ownership", "Forma własności", 
-  "lat / lon", "Współrzędne geograficzne", 
-  "centreDistance", "Odległość od centrum (km)", 
-  "poiCount", "Liczba punktów POI (500m)", 
-  "*Distance", "Odległości do: szkół, przychodni itp.", 
-  "has*Parking, Balkon, Winda, Ochrona...", "Czy ma dane udogodnienie (TAK/NIE)", 
-)
-
-kbl(slownik, caption = "Słownik Zmiennych (Data Dictionary)") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
-                full_width = F, 
-                position = "center",
-                font_size = 14) %>%
-  row_spec(0, bold = TRUE, color = "white", background = "#2c3e50") %>% 
-  column_spec(1, bold = TRUE, color = "#2980b9") 
-```
+| Nazwa Zmiennej | Opis |
+| :--- | :--- |
+| **id** | Unikalny identyfikator ogłoszenia |
+| **city** | Miasto, w którym znajduje się nieruchomość |
+| **price** | Cena ofertowa (PLN) |
+| **squareMeters** | Powierzchnia mieszkania w m² |
+| **rooms** | Liczba pokoi |
+| **floor / floorCount** | Piętro mieszkania / Liczba pięter w budynku |
+| **buildYear** | Rok budowy |
+| **type** | Rodzaj zabudowy (kamienica, blok, apartamentowiec) |
+| **ownership** | Forma własności |
+| **lat / lon** | Współrzędne geograficzne |
+| **centreDistance** | Odległość od centrum miasta (km) |
+| **poiCount** | Liczba punktów usługowych w promieniu 500m |
+| **\*Distance** | Odległości do: szkół, przychodni itp. |
+| **has\*** | Czy ma udogodnienie (Winda, Balkon, Parking...)? |
 
 ---
-
-:
 
 ## 🛠️ Wykorzystane Technologie i Pakiety
 Projekt został zrealizowany w ekosystemie R z naciskiem na nowoczesne biblioteki do wizualizacji, analizy przestrzennej oraz automatycznego raportowania.
