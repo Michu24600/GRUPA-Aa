@@ -3,7 +3,7 @@
 ![R](https://img.shields.io/badge/R-276DC3?style=for-the-badge&logo=r&logoColor=white)
 ![RStudio](https://img.shields.io/badge/RStudio-75AADB?style=for-the-badge&logo=RStudio&logoColor=white)
 ![Gdańsk Tech](https://img.shields.io/badge/Politechnika_Gdańska-red?style=for-the-badge&logo=school&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Finished-success?style=for-the-badge)
 
 > **Projekt realizowany w ramach przedmiotu:** > *Analiza Danych w R* > **Uczelnia:** Politechnika Gdańska (Gdańsk Tech)
 
