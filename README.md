@@ -11,14 +11,17 @@
 
 ## 🎯 Cel Projektu
 
-Głównym celem projektu jest zbadanie **czynników wpływających na ceny mieszkań w Polsce** w roku 2024. 
-Staramy się odpowiedzieć na pytania:
-* Jak lokalizacja (odległość od centrum, miasto) wpływa na wycenę metra kwadratowego?
-* Czy bliskość punktów usługowych (szkoły, restauracje) podbija cenę?
-* Jaką premię cenową dają udogodnienia takie jak winda?
-* Czy rok budowy wpływa znacząco na cenę?
+Analiza czynników cenotwórczych na rynku mieszkań w Polsce (2024)
 
-Analiza obejmuje czyszczenie danych, inżynierię cech, wizualizację (mapy, wykresy) oraz modelowanie statystyczne.
+Głównym celem projektu jest zbadanie, co tak naprawdę wpływa na ceny nieruchomości w Polsce. Raport stanowi próbę odpowiedzi na kluczowe pytania inwestycyjne:
+
+Jak silny jest wpływ lokalizacji (miasto, dystans do centrum) na wycenę?
+
+Czy bliskość infrastruktury usługowej (POI) realnie podbija wartość metra kwadratowego?
+
+Jaką premię cenową dają parametry techniczne (winda, rok budowy)?
+
+Publikacja obejmuje kompletny proces analityczny: od czyszczenia danych i inżynierii cech, przez zaawansowaną wizualizację przestrzenną, aż po weryfikację hipotez za pomocą modelowania statystycznego.
 
 ---
 
@@ -37,47 +40,97 @@ Analiza obejmuje czyszczenie danych, inżynierię cech, wizualizację (mapy, wyk
 Zbiór danych zawiera oferty sprzedaży mieszkań z czerwca 2024 roku.
 **Źródło danych:** [https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv]
 
-### Słownik Zmiennych (Data Dictionary)
+## 📖 Słownik Zmiennych (Data Dictionary)
+<div class="info-box">
+Poniższa tabela przedstawia opis zmiennych dostępnych w analizowanym zbiorze danych:
+</div>
+```{r data_dictionary, echo=FALSE,message=FALSE,warning=FALSE}
+# Najpierw upewnij się, że masz pakiet: install.packages("kableExtra")
+library(kableExtra)
+library(dplyr)
 
-| Zmienna | Opis |
-| :--- | :--- |
-| `city` | Miasto, w którym znajduje się nieruchomość |
-| `price` | **Cena ofertowa (PLN) - zmienna celu** |
-| `squareMeters` | Powierzchnia mieszkania w m² |
-| `rooms` | Liczba pokoi |
-| `floor` / `floorCount` | Piętro mieszkania / Liczba pięter w budynku |
-| `buildYear` | Rok budowy |
-| `type` | Rodzaj zabudowy (np. kamienica, blok, apartamentowiec) |
-| `latitude`, `longitude` | Współrzędne geograficzne |
-| `centreDistance` | Odległość od centrum miasta (km) |
-| `poiCount` | Liczba punktów POI w promieniu 500m |
-| `*Distance` | Odległości do: szkół, klinik, poczty, przedszkoli, restauracji, uczelni, aptek |
+# Tworzymy dane ręcznie
+slownik <- tibble::tribble(
+  ~"Nazwa Zmiennej", ~"Opis", 
+  "id", "Unikalny identyfikator ogłoszenia", 
+  "city", "Miasto, w którym znajduje się nieruchomość", 
+  "price", "Cena ofertowa (PLN) ", 
+  "squareMeters", "Powierzchnia mieszkania w m²", 
+  "rooms", "Liczba pokoi", 
+  "floor / floorCount", "Piętro mieszkania / Liczba pięter", 
+  "buildYear", "Rok budowy budynku", 
+  "type", "Rodzaj zabudowy ", 
+  "ownership", "Forma własności", 
+  "lat / lon", "Współrzędne geograficzne", 
+  "centreDistance", "Odległość od centrum (km)", 
+  "poiCount", "Liczba punktów POI (500m)", 
+  "*Distance", "Odległości do: szkół, przychodni itp.", 
+  "has*Parking, Balkon, Winda, Ochrona...", "Czy ma dane udogodnienie (TAK/NIE)", 
+)
+
+kbl(slownik, caption = "Słownik Zmiennych (Data Dictionary)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = F, 
+                position = "center",
+                font_size = 14) %>%
+  row_spec(0, bold = TRUE, color = "white", background = "#2c3e50") %>% 
+  column_spec(1, bold = TRUE, color = "#2980b9") 
+```
 
 ---
 
+:
+
 ## 🛠️ Wykorzystane Technologie i Pakiety
+Projekt został zrealizowany w ekosystemie R z naciskiem na nowoczesne biblioteki do wizualizacji, analizy przestrzennej oraz automatycznego raportowania.
 
-Projekt został zrealizowany w języku **R** przy użyciu następujących bibliotek:
-**1. Przetwarzanie i manipulacja danymi (Data Wrangling):**
-* `dplyr` – główny silnik do przetwarzania, filtracji i agregacji danych.
-* `tidyr` – do porządkowania struktury danych.
-* `stringr` – operacje na ciągach znaków (tekstach).
+1. 🧹 Przetwarzanie i Manipulacja Danych (Data Wrangling)
+dplyr – fundament projektu: filtrowanie, mutowanie i agregacja danych.
 
-**2. Wizualizacja Danych (Data Viz):**
-* `ggplot2` – tworzenie statycznych wykresów (histogramy, scatterploty).
-* `hexbin` – wydajna wizualizacja dużych zbiorów danych (wykresy heksagonalne).
-* `scales` – skalowanie wielkości punktów i formatowanie osi (np. waluty).
+tidyr – czyszczenie i formatowanie struktury danych (tidy data).
 
-**3. Analiza Przestrzenna i Mapy (Geospatial):**
-* `leaflet` – interaktywne mapy (HTML widgets).
-* `ggspatial` – wizualizacja danych na podkładach mapowych (OpenStreetMap) w ggplot2.
-* `prettymapr` – narzędzie pomocnicze do skal i ramek na mapach.
+stringr – operacje na ciągach tekstowych.
 
-**4. Imputacja Danych (Handling Missing Values):**
-* `VIM` – algorytm kNN (k-Najbliższych Sąsiadów) do uzupełniania braków (np. rok budowy).
-* `randomForest` – zaawansowana imputacja brakujących zmiennych kategorycznych (np. typ budynku).
+2. 📊 Zaawansowana Wizualizacja (Data Viz)
+ggplot2 – tworzenie warstwowych wykresów statycznych.
 
-**5. Animacja:**
-* `gganimate` – animowanie wykresów w czasie (historia rynku).
-* `gifski` – renderer do generowania plików GIF.
+patchwork – łączenie wielu niezależnych wykresów w jedną kompozycję (np. mapy Gdańska i Warszawy obok siebie).
+
+viridis – profesjonalne palety kolorystyczne przyjazne dla daltonistów (użyte w mapach ciepła).
+
+hexbin – agregacja heksagonalna do analizy gęstości zabudowy.
+
+scales – formatowanie walut i osi liczbowych.
+
+3. 📈 Wnioskowanie Statystyczne (Statistical Inference)
+ggstatsplot – automatyzacja testów statystycznych (ANOVA, t-test) połączona z wizualizacją wyników i parametrami (p-value, wielkość efektu).
+
+rstatix – "pipe-friendly" obliczenia statystyczne.
+
+car – weryfikacja założeń (Test Levene'a jednorodności wariancji).
+
+report – automatyczne generowanie opisów wyników statystycznych w języku naturalnym.
+
+4. 🌍 Analiza Przestrzenna (Geospatial & GIS)
+sf (Simple Features) – nowoczesny standard obsługi danych wektorowych i geometrii miast.
+
+osmdata – pobieranie granic administracyjnych miast (API OpenStreetMap).
+
+ggspatial – elementy kartograficzne na wykresach ggplot.
+
+5. 🖱️ Interaktywność i Dashboard (Bezserwerowe)
+crosstalk – komunikacja między widgetami (suwaki filtrujące dane na żywo bez użycia Shiny Server).
+
+plotly – interaktywne wykresy (zoom, tooltips) działające w przeglądarce.
+
+DT – interaktywne tabele z możliwością przeszukiwania i sortowania.
+
+6. 🎥 Animacja i Raportowanie
+gganimate & gifski – wizualizacja rozwoju tkanki miejskiej w czasie (Time-series animation).
+
+rmarkdown & knitr – silnik generujący raport HTML.
+
+bslib (Bootstrap 5) – nowoczesny motyw graficzny raportu z obsługą Dark Mode (tryb ciemny/jasny).
+
+
 

@@ -4,6 +4,8 @@ subtitle: "Raport analityczny"
 author: "Kacper Ciszewski, Michał Dalach, Wiktor Drozdowski"
 date: "`r Sys.Date()`"
 output: 
+  pdf_document:
+    toc: true
   html_document:
     theme: 
       version: 5
@@ -17,8 +19,6 @@ output:
     smooth_scroll: true
     number_sections: false
     highlight: pygments
-  pdf_document:
-    toc: true
 ---
 
 <script>
