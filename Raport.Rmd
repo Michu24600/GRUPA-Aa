@@ -831,7 +831,7 @@ bscols(
   
  
   list(
-    h4("🎛️ Filtry"),
+    h4("Filtry"),
     
     # Suwak dystansu
     filter_slider("dist", "Odległość od centrum (km)", sd, ~centreDistance, step = 0.5, width = "100%"),
