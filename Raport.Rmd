@@ -4,8 +4,6 @@ subtitle: "Raport analityczny"
 author: "Kacper Ciszewski, Michał Dalach, Wiktor Drozdowski"
 date: "`r Sys.Date()`"
 output: 
-  pdf_document:
-    toc: true
   html_document:
     theme: 
       version: 5
@@ -19,6 +17,8 @@ output:
     smooth_scroll: true
     number_sections: false
     highlight: pygments
+  pdf_document:
+    toc: true
 ---
 
 <script>
@@ -137,7 +137,7 @@ library(shinythemes)
 
 # 1. Wstęp i Cel Projektu
 <div class="info-box">
-**🎯 Cel Analizy**: Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada dwuetapową weryfikację hipotez: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
+**Cel Analizy**: Celem niniejszego badania jest zidentyfikowanie oraz ocena siły oddziaływania kluczowych determinant cenowych na rynku nieruchomości mieszkalnych w Polsce. Analiza koncentruje się na wielowymiarowym badaniu zależności między cechami fizycznymi lokalu, infrastrukturą otoczenia a ceną transakcyjną. Projekt zakłada dwuetapową weryfikację hipotez: w ujęciu globalnym (dla całego zbioru danych) oraz w ujęciu lokalnym, poprzez szczegółową analizę specyfiki wybranych rynków miejskich (np. Warszawy,Gdańska), co pozwoli na uchwycenie niuansów lokalizacyjnych wpływających na wycenę.
 </div>
 ## 1.1 O Danych
 <div class="info-box">
@@ -145,7 +145,7 @@ Analiza została przeprowadzona na zbiorze danych zawierającym oferty sprzedaż
 
 **Źródło danych:** [<https://www.kaggle.com/datasets/krzysztofjamroz/apartment-prices-in-poland/?select=apartments_pl_2023_08.csv>] 
 </div>
-## 1.2. 📖 Słownik Zmiennych (Data Dictionary)
+## 1.2. Słownik Zmiennych (Data Dictionary)
 <div class="info-box">
 Poniższa tabela przedstawia opis zmiennych dostępnych w analizowanym zbiorze danych:
 </div>
@@ -1397,7 +1397,7 @@ Gdańsk (Model Policentryczny/Pasmowy): Ceny nie spadają liniowo.Nowa zabudowa 
 <div class="info-box">
 Analiza korelacji wskazuje, że dostępność usług (Points of Interest) jest najsilniejszym pozytywnym predyktorem ceny za m². Zależność ta nie jest jednak liniowa – rynek najlepiej wycenia lokalizacje z 50–130 punktami usługowymi w zasięgu (cena >20 000 PLN/m²). Powyżej tej liczby (ścisłe, głośne centra) wzrost cen wyhamowuje. Potwierdza to tezę, że nabywcy szukają kompromisu między dostępnością usług a komfortem życia.
 </div>
-## 4.5. Wnioski z Wnioskowania Statystycznego
+## 4.5. Końcowe Wnioski Statystyczne
 <div class="info-box">
 Przeprowadzone testy parametryczne (Welch ANOVA, Games-Howell) na próbie ponad 20 tys. ofert pozwoliły na sformułowanie wniosków o wysokim poziomie istotności statystycznej ($p < 0.001$):
 
