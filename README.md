@@ -25,16 +25,6 @@ Publikacja obejmuje kompletny proces analityczny: od czyszczenia danych i inżyn
 
 ---
 
-## Zespół
-
-|  Imię |
-| :--- | 
-|  **Wiktor** |
-| ️ **Michał** |
-|  **Kacper** | 
-
----
-
 ## O Danych
 
 Zbiór danych zawiera oferty sprzedaży mieszkań z czerwca 2024 roku.
